@@ -9,34 +9,117 @@
         font-family: Arial, sans-serif;
       }
 
+      .site-header {
+        box-sizing: border-box;
+        display: flex;
+        position: relative;
+        z-index: 2;
+        align-items: center;
+        justify-content: space-between;
+        height: 72px;
+        padding: 0 22px;
+        border-bottom: 1px solid #cddde3;
+        background:
+          linear-gradient(90deg, rgb(26 92 105 / 8%), transparent 38%),
+          #ffffff;
+        box-shadow: 0 2px 12px rgb(23 63 80 / 9%);
+      }
+
+      .brand-lockup {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        gap: 11px;
+      }
+
+      .brand-mark {
+        display: grid;
+        flex: 0 0 auto;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        border-radius: 11px;
+        background: linear-gradient(145deg, #123f5a, #26888c);
+        box-shadow: 0 4px 10px rgb(25 96 105 / 24%);
+        color: white;
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+      }
+
+      .brand-copy {
+        min-width: 0;
+      }
+
+      .brand-title {
+        display: block;
+        color: #173f54;
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        line-height: 1.05;
+      }
+
+      .brand-subtitle {
+        display: block;
+        margin-top: 4px;
+        overflow: hidden;
+        color: #657681;
+        font-size: 12px;
+        letter-spacing: 0.01em;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
       .tabs {
         display: flex;
         align-items: center;
-        height: 48px;
-        background: #f2f2f2;
-        border-bottom: 1px solid #ccc;
-        padding: 0 12px;
-        gap: 8px;
+        padding: 4px;
+        gap: 4px;
+        border: 1px solid #d8e2e6;
+        border-radius: 12px;
+        background: #f3f7f8;
       }
 
       .tab-button {
-        border: 1px solid #bbb;
-        background: white;
-        padding: 8px 14px;
+        border: 0;
+        border-radius: 8px;
+        padding: 9px 15px;
+        background: transparent;
+        color: #526571;
         cursor: pointer;
-        border-radius: 6px 6px 0 0;
         font-size: 14px;
+        font-weight: 600;
+        transition: background 150ms ease, box-shadow 150ms ease, color 150ms ease;
+      }
+
+      .tab-button:hover:not(.active) {
+        background: #e7eff1;
+        color: #173f54;
+      }
+
+      .tab-button:focus-visible {
+        outline: 3px solid rgb(38 136 140 / 28%);
+        outline-offset: 2px;
       }
 
       .tab-button.active {
-        background: #ffffff;
-        border-bottom: 2px solid #ffffff;
-        font-weight: bold;
+        background: #176b73;
+        box-shadow: 0 3px 8px rgb(23 107 115 / 22%);
+        color: white;
       }
 
       .tab-content {
         display: none;
-        height: calc(100vh - 49px);
+        height: calc(100vh - 72px);
+      }
+
+      @media (max-width: 620px) {
+        .site-header { padding: 0 12px; }
+        .brand-subtitle { display: none; }
+        .brand-title { font-size: 17px; }
+        .brand-mark { width: 34px; height: 34px; font-size: 18px; }
+        .tab-button { padding: 8px 10px; font-size: 13px; }
       }
 
       .tab-content.active {
@@ -105,27 +188,152 @@
         color: #555;
       }
 
-      .template-panel {
-        padding: 24px;
-      }
 
-      .template-card {
-        border: 1px solid #ddd;
-        border-radius: 8px;
+      .documentation-panel {
+        box-sizing: border-box;
+        height: 100%;
+        overflow-y: auto;
+        scroll-behavior: smooth;
+        background: #f5f7fa;
+        color: #25313c;
+      }
+      .documentation-shell {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 32px 24px 56px;
+      }
+      .documentation-hero {
+        padding: 36px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #143f5c, #206b78);
+        box-shadow: 0 8px 24px rgb(22 57 76 / 18%);
+        color: white;
+      }
+      .documentation-eyebrow {
+        margin: 0 0 8px;
+        color: #bce8e6;
+        font-size: 13px;
+        font-weight: bold;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .documentation-hero h1 {
+        max-width: 850px;
+        margin: 0;
+        font-size: clamp(28px, 4vw, 44px);
+        line-height: 1.12;
+      }
+      .documentation-lede {
+        max-width: 850px;
+        margin: 18px 0 0;
+        color: #e9f6f5;
+        font-size: 18px;
+        line-height: 1.6;
+      }
+      .fact-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin: 20px 0 28px;
+      }
+      .fact-card {
+        padding: 18px;
+        border: 1px solid #d9e1e7;
+        border-radius: 10px;
+        background: white;
+      }
+      .fact-card strong {
+        display: block;
+        color: #176b73;
+        font-size: 22px;
+      }
+      .fact-card span {
+        display: block;
+        margin-top: 5px;
+        color: #5b6874;
+        font-size: 13px;
+        line-height: 1.4;
+      }
+      .documentation-layout {
+        display: grid;
+        grid-template-columns: 220px minmax(0, 1fr);
+        gap: 28px;
+        align-items: start;
+      }
+      .documentation-nav {
+        position: sticky;
+        top: 20px;
         padding: 16px;
-        max-width: 800px;
-        background: #fff;
+        border: 1px solid #d9e1e7;
+        border-radius: 10px;
+        background: white;
+      }
+      .documentation-nav strong {
+        display: block;
+        margin-bottom: 8px;
+        color: #344554;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .documentation-nav a {
+        display: block;
+        padding: 7px 4px;
+        color: #176b73;
+        font-size: 14px;
+        text-decoration: none;
+      }
+      .documentation-nav a:hover,
+      .documentation-nav a:focus {
+        color: #0b4650;
+        text-decoration: underline;
+      }
+      .documentation-content { min-width: 0; }
+      .documentation-section {
+        margin-bottom: 20px;
+        padding: 26px 28px;
+        border: 1px solid #d9e1e7;
+        border-radius: 10px;
+        background: white;
+        scroll-margin-top: 20px;
+      }
+      .documentation-section h2 {
+        margin: 0 0 14px;
+        color: #163f55;
+        font-size: 24px;
+      }
+      .documentation-section p {
+        margin: 0 0 14px;
+        line-height: 1.68;
+      }
+      .documentation-section p:last-child { margin-bottom: 0; }
+      .documentation-section a { color: #176b73; }
+      @media (max-width: 800px) {
+        .documentation-shell { padding: 20px 14px 40px; }
+        .documentation-hero { padding: 26px 22px; }
+        .fact-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .documentation-layout { grid-template-columns: 1fr; }
+        .documentation-nav { position: static; columns: 2; }
+        .documentation-nav strong { column-span: all; }
+        .documentation-section { padding: 22px 20px; }
       }
     </style>
   </head>
 
   <body>
-    <div class="tabs">
-      <button class="tab-button active" data-tab="cbioportal">cBioPortal</button>
-      <button class="tab-button" data-tab="summary">Summary</button>
-      <button class="tab-button" data-tab="notes">Notes</button>
-      <button class="tab-button" data-tab="methods">Methods</button>
-    </div>
+    <header class="site-header">
+      <div class="brand-lockup" aria-label="CLAMP">
+        <span class="brand-mark" aria-hidden="true">C</span>
+        <span class="brand-copy">
+          <span class="brand-title">CLAMP</span>
+          <span class="brand-subtitle">Harmonized cell-line mutation profiles</span>
+        </span>
+      </div>
+      <nav class="tabs" aria-label="Primary navigation">
+        <button class="tab-button active" data-tab="cbioportal">cBioPortal</button>
+        <button class="tab-button" data-tab="summary">Summary</button>
+      </nav>
+    </header>
 
     <div id="cbioportal" class="tab-content active">
       <div class="portal-frame">
@@ -147,49 +355,93 @@
     </div>
 
     <div id="summary" class="tab-content">
-      <div class="template-panel">
-        <div class="template-card">
-          <h2>Summary</h2>
-          <p>This is a placeholder tab for study, cohort, or analysis summaries.</p>
+      <div class="documentation-panel">
+        <main class="documentation-shell">
+          <header class="documentation-hero">
+            <p class="documentation-eyebrow">Project documentation</p>
+            <h1>Cell Line Analysis of Mutation Pipelines</h1>
+            <p class="documentation-lede">The Cell Line Analysis of Mutation Pipelines (CLAMP) is a harmonized somatic mutation resource for tumor cell-line models. CLAMP reprocessed raw sequencing data and recalled exome-wide single-nucleotide variants (SNVs) and short insertions and deletions (indels) across 1,269 cell lines using four contemporary mutation callers.</p>
+          </header>
 
-          <h3>Template fields</h3>
-          <ul>
-            <li>Study name:</li>
-            <li>Cohort:</li>
-            <li>Genes of interest:</li>
-            <li>Key findings:</li>
-          </ul>
-        </div>
-      </div>
-    </div>
+          <section class="fact-grid" aria-label="CLAMP at a glance">
+            <div class="fact-card"><strong>1,269</strong><span>tumor cell lines</span></div>
+            <div class="fact-card"><strong>4</strong><span>contemporary mutation callers</span></div>
+            <div class="fact-card"><strong>hg38</strong><span>harmonized reference genome</span></div>
+            <div class="fact-card"><strong>Union(D,L)</strong><span>recommended default callset</span></div>
+          </section>
 
-    <div id="notes" class="tab-content">
-      <div class="template-panel">
-        <div class="template-card">
-          <h2>Notes</h2>
-          <p>This is a placeholder for freeform notes.</p>
+          <div class="documentation-layout">
+            <nav class="documentation-nav" aria-label="Summary sections">
+              <strong>On this page</strong>
+              <a href="#overview">Overview</a>
+              <a href="#data-sources">Data Sources</a>
+              <a href="#mutation-callsets">Mutation callsets</a>
+              <a href="#processing">Processing and filtering</a>
+              <a href="#using-the-app">Using the app</a>
+              <a href="#caveats">Caveats</a>
+              <a href="#downloads-citations">Downloads and citations</a>
+            </nav>
+            <article class="documentation-content">
+              <section id="overview" class="documentation-section">
+                <h2>Overview</h2>
+                <p>The Cell Line Analysis of Mutation Pipelines (CLAMP) is a harmonized somatic mutation resource for tumor cell-line models. CLAMP reprocessed raw sequencing data and recalled exome-wide single-nucleotide variants (SNVs) and short insertions and deletions (indels) across 1,269 cell lines using four contemporary mutation callers: DeepSomatic, Lancet2, Mutect2, and Strelka2.</p>
+                <p>CLAMP was developed to improve the consistency and interpretability of mutation profiles across major cancer cell-line resources. Because published cell-line mutation profiles were generated using different sequencing centers, preprocessing strategies, and variant-calling pipelines, the same cell line may have discordant mutation calls across resources. CLAMP addresses this by applying a harmonized processing workflow and making both caller-specific and integrated mutation callsets available for comparison.</p>
+                <p>The primary CLAMP callset is <strong>Union(D,L)</strong>, the union of mutations called by DeepSomatic or Lancet2. This callset was selected based on benchmark performance against ultra-high-depth reference datasets and is intended as the default high-confidence mutation set for most analyses. Individual caller outputs are also provided for users interested in caller-specific behavior, sensitivity-focused analyses, or method comparison. Absence of a mutation from <strong>Union(D,L)</strong> should not be interpreted as definitive absence from the cell line, particularly in regions with limited coverage or caller disagreement. Users should also note that independently propagated versions of the same cell line may differ because of genomic drift or culture-specific evolution.</p>
+                <p>CLAMP currently focuses on SNVs and short indels. Copy-number alterations, structural variants, gene fusions, and expression-level changes are outside the primary scope of this release unless otherwise indicated.</p>
+              </section>
 
-          <textarea
-            style="width: 100%; height: 300px;"
-            placeholder="Write notes here..."></textarea>
-        </div>
-      </div>
-    </div>
+              <section id="data-sources" class="documentation-section">
+                <h2>Data Sources</h2>
+                <p>CLAMP integrates sequencing data from major tumor cell-line resources, including the Cancer Cell Line Encyclopedia (CCLE) and the Cell Models Passport (CMP). These resources contain overlapping but not identical cell-line collections, and some cell lines were independently profiled by more than one sequencing center. For each cell line, CLAMP records the source resource, sequencing provenance, assay type, and profile identifier associated with the analyzed data.</p>
+                <p>Because the same nominal cell line may have multiple available sequencing profiles, CLAMP distinguishes between the cell-line model and the specific sequencing profile used for mutation calling. Multiple profiles may reflect independent sequencing by Broad/CCLE and Sanger/CMP, different assay types such as WES and WGS, or replicate profiling within a resource. Users should account for this provenance when comparing mutation calls across resources or interpreting discordance between profiles.</p>
+                <p>Cell-line identifiers were harmonized across resources using shared model identifiers where available, with primary names, aliases, resource-specific IDs, and lineage annotations retained for search and filtering. When displaying originally published or DepMap-derived comparator mutation profiles, CLAMP retains source-matched mutation data: Broad-derived comparator calls are matched to Broad-derived CLAMP sequencing profiles, and Sanger-derived comparator calls are matched to Sanger-derived CLAMP sequencing profiles. This avoids comparing mutation profiles generated from different sequencing runs of the same nominal cell line.</p>
+                <p>Not every cell line has data from every source or assay type; users should consult the profile-level metadata to determine which sequencing source, assay type, and comparator data are available for a given cell line.</p>
+              </section>
 
-    <div id="methods" class="tab-content">
-      <div class="template-panel">
-        <div class="template-card">
-          <h2>Methods</h2>
-          <p>This tab can hold workflow notes, filters, preprocessing steps, or interpretation guidance.</p>
+              <section id="mutation-callsets" class="documentation-section">
+                <h2>Mutation callsets</h2>
+                <p>CLAMP provides mutation calls generated by four individual callers—DeepSomatic, Lancet2, Mutect2, and Strelka2—as well as integrated callsets derived from combinations of these callers. The primary CLAMP callset is <strong>Union(D,L)</strong>, defined as the union of mutations nominated by DeepSomatic or Lancet2.</p>
+                <p><strong>Union(D,L)</strong> was selected as the default high-confidence callset because it achieved the best precision–recall balance in benchmark comparisons against ultra-high-depth reference datasets. For most analyses that prioritize reliable SNV/indel mutation labels, <strong>Union(D,L)</strong> is the recommended starting point. Individual caller outputs are also retained so users can inspect caller support, evaluate caller-specific behavior, or perform analyses that prioritize sensitivity over the default high-confidence callset.</p>
+                <p>For each mutation, CLAMP reports whether the variant was nominated by DeepSomatic, Lancet2, Mutect2, and/or Strelka2, along with whether it is included in <strong>Union(D,L)</strong>. Caller support can help users distinguish variants supported by multiple algorithms from variants detected by a single method, but should be interpreted in the context of sequencing source, assay type, coverage, and the intended analysis.</p>
+                <p>CLAMP also includes originally published mutation callsets where available, allowing users to compare harmonized CLAMP calls with previous resource annotations. In cross-resource comparisons, these original callsets may correspond to the respective published mutation profiles from each source resource.</p>
+                <p>Absence of a mutation from <strong>Union(D,L)</strong> should not be interpreted as definitive absence from the cell line, particularly in regions with limited coverage or caller disagreement. Disagreement among callers does not necessarily imply that a mutation is false; it may reflect local sequence context, read support, coverage, variant type, or caller-specific modeling choices.</p>
+              </section>
 
-          <h3>Template fields</h3>
-          <ul>
-            <li>Data source:</li>
-            <li>Filtering criteria:</li>
-            <li>Analysis method:</li>
-            <li>Version/date:</li>
-          </ul>
-        </div>
+              <section id="processing" class="documentation-section">
+                <h2>Processing and filtering</h2>
+                <p>CLAMP processes mutation data at the sequencing-profile level. Each profile is associated with a source resource, sequencing center, assay type, and source-specific sample identifier. When the same nominal cell line was profiled by multiple resources or assay types, those profiles were retained separately rather than collapsed into a single mutation set.</p>
+                <p>Sequencing data were processed through a harmonized workflow before mutation calling. This workflow used the hg38 reference genome and standardized preprocessing steps to generate comparable inputs across CCLE- and CMP-derived profiles. Somatic SNVs and short indels were then called using four mutation callers: DeepSomatic, Lancet2, Mutect2, and Strelka2.</p>
+                <p>Caller outputs were normalized to a common variant representation using chromosome, position, reference allele, and alternate allele. Calls from different mutation callers were merged when they referred to the same normalized variant in the same sequencing profile. CLAMP reports caller support for each mutation and defines <strong>Union(D,L)</strong> as the set of mutations nominated by DeepSomatic and/or Lancet2.</p>
+                <p>When comparing CLAMP calls with originally published or DepMap-derived mutation profiles, source-matched comparator records were retained. Broad-derived comparator calls were matched to Broad-derived CLAMP sequencing profiles, and Sanger-derived comparator calls were matched to Sanger-derived CLAMP sequencing profiles. This avoids comparing mutation profiles generated from different sequencing runs of the same nominal cell line.</p>
+                <p>The primary CLAMP views focus on somatic SNVs and short indels. Depending on the app view, users may filter mutations by gene, genomic coordinate, coding consequence, source profile, assay type, caller support, and inclusion in <strong>Union(D,L)</strong>. Absence of a mutation from a filtered view may reflect filtering choices, caller disagreement, limited coverage, or profile-specific differences, and should not be interpreted without considering the underlying sequencing profile and callset.</p>
+              </section>
+
+              <section id="using-the-app" class="documentation-section">
+                <h2>Using the app</h2>
+                <p>The CLAMP webapp embeds a cBioPortal deployment for interactive exploration of mutation profiles. Users can query genes and mutations, view mutation tables and OncoPrint-style summaries, inspect available sample metadata, and download selected results. CLAMP-specific metadata—including sequencing source, assay type, source resource, callset, and caller support—are provided as study annotations or custom data fields where available.</p>
+                <p>For most analyses, we recommend beginning with <strong>Union(D,L)</strong>, the default high-confidence CLAMP callset, and then inspecting caller support and profile-level metadata to interpret individual mutations. When multiple sequencing profiles exist for the same nominal cell line, these profiles are represented separately so that source, assay, and sequencing-center provenance are preserved.</p>
+                <p>Some CLAMP-specific concepts, including source-matched comparator filtering, genomic drift caveats, and detailed processing decisions, are described in the accompanying documentation rather than enforced by cBioPortal itself.</p>
+              </section>
+
+              <section id="caveats" class="documentation-section">
+                <h2>Caveats</h2>
+                <p>CLAMP provides harmonized, high-confidence SNV and short-indel calls, but it is not a complete truth set for every cell line. <strong>Union(D,L)</strong> is recommended as the default high-confidence callset, but absence from <strong>Union(D,L)</strong> should not be interpreted as definitive absence of a mutation.</p>
+                <p>Mutation calls are displayed at the sequencing-profile level. Multiple profiles for the same named cell line may differ because of sequencing source, assay type, sample handling, genomic drift, or culture-specific evolution.</p>
+                <p>CLAMP reduces technical discordance from preprocessing and mutation-calling differences, but it cannot fully separate technical artifacts from biological divergence. Originally published callsets are included for comparison and provenance.</p>
+                <p>CLAMP currently focuses on somatic SNVs and short indels. Drug-response data, where shown, are derived from cell-line screens and should not be interpreted as clinical treatment recommendations.</p>
+                <p>Analyses using CLAMP should report the release version, selected callset, sequencing source, assay type, and filters used.</p>
+              </section>
+
+              <section id="downloads-citations" class="documentation-section">
+                <h2>Downloads and citations</h2>
+                <p>CLAMP downloads include the selected <strong>Union(D,L)</strong> callset, individual caller outputs, profile-level metadata, and annotation tables used by the webapp. Where available, originally published comparator callsets and linked pharmacogenomic metadata are provided as separate files.</p>
+                <p>Users performing caller-specific or sensitivity-focused analyses may use the individual caller tables or caller-support fields in the merged mutation file.</p>
+                <p>CLAMP is versioned. When using CLAMP data, please report the release version, selected callset, genome build, sequencing source, assay type, filters applied, and date accessed. Please cite the CLAMP manuscript and any linked external data resources used in your analysis.</p>
+                <p>Questions or suspected data issues can be sent to daniel.halmos@dph.ox.ac.uk with the relevant release version, cell-line identifier, callset, and mutation or profile ID.</p>
+              </section>
+            </article>
+          </div>
+        </main>
       </div>
     </div>
 
