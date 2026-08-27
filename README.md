@@ -85,7 +85,7 @@ Replace the reviewed files under `studies/clamp_2026`, then run:
 ./scripts/smoke-test.sh
 ```
 
-The study-loader image is labeled with a deterministic hash of every study file. Normal startup never imports data. An existing study can only be overwritten with the explicit `--force` flag. Validation and import reports, along with the last successful import record, are written to ignored files under `reports/`.
+The study-loader image is labeled with a deterministic hash of every study file. Normal startup never imports data. An existing study can only be overwritten with the explicit `--force` flag. The database is authoritative for this guard; an audit marker left under `reports/` after database volumes are recreated does not block a fresh import. Validation and import reports, along with the last successful import record, are written to ignored files under `reports/`.
 
 When SAML is enabled, cBioPortal protects the `/api/info` endpoint used for portal-dependent validator lookups. The loader therefore uses the official validator/importer `--no_portal_checks` mode for authenticated deployments. File-format, metadata, case-list, clinical-data, and mutation-data validation still run; the output explicitly lists the skipped portal-dependent cancer-type, gene, gene-set, and gene-panel checks. Run validation in an equivalent unauthenticated, isolated environment if those four installation-dependent checks are required.
 

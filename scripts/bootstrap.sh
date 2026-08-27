@@ -25,7 +25,7 @@ fi
 "$ROOT_DIR/scripts/build.sh"
 "$ROOT_DIR/scripts/up.sh"
 
-if curl -fsS "$(base_url)/cbioportal/api/studies/clamp_2026" >/dev/null 2>&1; then
+if study_exists_in_database clamp_2026; then
   if [[ "$reuse_data" == true ]]; then
     log "Existing clamp_2026 study retained"
   else

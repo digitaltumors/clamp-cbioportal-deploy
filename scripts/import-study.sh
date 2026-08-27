@@ -21,15 +21,17 @@ export IMAGE_REVISION STUDY_VERSION
 marker="$ROOT_DIR/reports/last-import.env"
 study_url="$(base_url)/cbioportal/api/studies/clamp_2026"
 study_exists=false
-if curl -fsS "$study_url" >/dev/null 2>&1; then
+if study_exists_in_database clamp_2026; then
   study_exists=true
 fi
 
-if [[ -f "$marker" || "$study_exists" == true ]]; then
+if [[ "$study_exists" == true ]]; then
   if [[ "$force" != true ]]; then
-    die "clamp_2026 is already imported or has an import record; use --force for an intentional overwrite"
+    die "clamp_2026 already exists in the database; use --force for an intentional overwrite"
   fi
   log "A deliberate overwrite was requested"
+elif [[ -f "$marker" ]]; then
+  log "Ignoring stale import record because clamp_2026 is absent from the database"
 fi
 
 compose --profile tools run --rm study-loader import

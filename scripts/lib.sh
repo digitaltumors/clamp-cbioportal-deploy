@@ -98,6 +98,26 @@ compose() {
   docker compose "${files[@]}" "$@"
 }
 
+
+study_exists_in_database() {
+  local study_id="$1"
+  local query
+  local count
+  [[ "$study_id" =~ ^[A-Za-z0-9_.-]+$ ]] \
+    || die "Invalid study identifier for database lookup: $study_id"
+  query="SELECT COUNT(*) FROM cancer_study WHERE CANCER_STUDY_IDENTIFIER = '${study_id}';"
+  # Credentials and the query intentionally expand inside the database container.
+  # shellcheck disable=SC2016
+  if ! count="$(compose exec -T cbioportal-database sh -c \
+    'export MYSQL_PWD="$MYSQL_PASSWORD"; exec mysql -u"$MYSQL_USER" "$MYSQL_DATABASE" --batch --skip-column-names --execute="$1"' \
+    sh "$query")"; then
+    die "Could not query cBioPortal for study $study_id"
+  fi
+  [[ "$count" =~ ^[0-9]+$ ]] \
+    || die "Unexpected database result while checking study $study_id: $count"
+  (( count > 0 ))
+}
+
 auth_mode() {
   local value="false"
   if [[ -f "$ENV_FILE" ]]; then
