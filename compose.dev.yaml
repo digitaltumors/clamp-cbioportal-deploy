@@ -1,0 +1,7 @@
+services:
+  cbioportal-database:
+    ports:
+      - "3306:3306"
+  cbioportal:
+    ports:
+      - "8080:8080"

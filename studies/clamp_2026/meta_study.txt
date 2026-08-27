@@ -1,0 +1,6 @@
+type_of_cancer: mixed
+cancer_study_identifier: clamp_2026
+name: CLAMP Synthetic Demonstration Study
+description: Fully synthetic mutation data for testing the CLAMP cBioPortal deployment. Not for biological or clinical interpretation.
+add_global_case_list: true
+reference_genome: hg38

@@ -1,0 +1,148 @@
+name: ${COMPOSE_PROJECT_NAME:-clamp-cbioportal}
+
+services:
+  cbioportal-database:
+    image: mysql:${MYSQL_VERSION:-8.0}
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_MYSQL_DB_NAME:?Set DB_MYSQL_DB_NAME in .env}
+      MYSQL_USER: ${DB_MYSQL_USERNAME:?Set DB_MYSQL_USERNAME in .env}
+      MYSQL_PASSWORD: ${DB_MYSQL_PASSWORD:?Set DB_MYSQL_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${DB_MYSQL_ROOT_PASSWORD:?Set DB_MYSQL_ROOT_PASSWORD in .env}
+    command: ["--local-infile=1"]
+    volumes:
+      - ./database/init/cgds.sql:/docker-entrypoint-initdb.d/01-cgds.sql:ro
+      - ./database/init/seed.sql.gz:/docker-entrypoint-initdb.d/02-seed.sql.gz:ro
+      - cbioportal_mysql_data:/var/lib/mysql
+    networks: [clamp]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 120s
+
+  cbioportal-session-database:
+    image: mongo:${MONGO_VERSION:-4.2}
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: session-service
+    volumes:
+      - cbioportal_mongo_data:/data/db
+    networks: [clamp]
+    healthcheck:
+      test: ["CMD", "mongo", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  cbioportal-session:
+    image: cbioportal/session-service:${SESSION_SERVICE_VERSION:-0.6.4}
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 5001
+      JAVA_OPTS: -Dspring.data.mongodb.uri=mongodb://cbioportal-session-database:27017/session-service
+    depends_on:
+      cbioportal-session-database:
+        condition: service_healthy
+    networks: [clamp]
+
+  cbioportal:
+    image: ${CLAMP_CBIOPORTAL_IMAGE:-clamp-cbioportal:local}
+    build:
+      context: ./cbioportal
+      dockerfile: Dockerfile
+      args:
+        CBIOPORTAL_BASE: cbioportal/cbioportal:${CBIOPORTAL_VERSION:-6.4.1}
+        IMAGE_REVISION: ${IMAGE_REVISION:-local}
+    restart: unless-stopped
+    environment:
+      DB_MYSQL_DB_NAME: ${DB_MYSQL_DB_NAME:?Set DB_MYSQL_DB_NAME in .env}
+      DB_MYSQL_USERNAME: ${DB_MYSQL_USERNAME:?Set DB_MYSQL_USERNAME in .env}
+      DB_MYSQL_PASSWORD: ${DB_MYSQL_PASSWORD:?Set DB_MYSQL_PASSWORD in .env}
+      DB_MYSQL_URL: ${DB_MYSQL_URL:?Set DB_MYSQL_URL in .env}
+      PORTAL_HOME: /cbioportal-webapp
+      JAVA_OPTS: ${CBIOPORTAL_JAVA_OPTS:--Xms1g -Xmx4g}
+      WEBAPP_OPTS: --spring.config.location=file:/cbioportal-webapp/application.properties
+    # cBioPortal 6.4.1 contains org.cbioportal.PortalApplication even though its
+    # published default command names org.cbioportal.application.PortalApplication.
+    command:
+      - sh
+      - -c
+      - >-
+        java $${JAVA_OPTS} -cp '/cbioportal-webapp:/cbioportal-webapp/lib/*'
+        org.cbioportal.PortalApplication $${WEBAPP_OPTS}
+    volumes:
+      - ./runtime/application.properties:/cbioportal-webapp/application.properties:ro
+    depends_on:
+      cbioportal-database:
+        condition: service_healthy
+      cbioportal-session:
+        condition: service_started
+    expose: ["8080"]
+    networks: [clamp]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/cbioportal/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 40
+      start_period: 90s
+
+  web:
+    image: ${CLAMP_WEB_IMAGE:-clamp-web:local}
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        NGINX_BASE: nginx:${NGINX_VERSION:-1.27-alpine}
+        IMAGE_REVISION: ${IMAGE_REVISION:-local}
+    restart: unless-stopped
+    depends_on:
+      cbioportal:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-8088}:80"
+    networks: [clamp]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+
+  study-loader:
+    image: ${CLAMP_STUDY_LOADER_IMAGE:-clamp-study-loader:local}
+    build:
+      context: .
+      dockerfile: study-loader/Dockerfile
+      args:
+        CBIOPORTAL_BASE: cbioportal/cbioportal:${CBIOPORTAL_VERSION:-6.4.1}
+        IMAGE_REVISION: ${IMAGE_REVISION:-local}
+        STUDY_VERSION: ${STUDY_VERSION:-unknown}
+    profiles: [tools]
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    working_dir: /tmp
+    environment:
+      DB_MYSQL_DB_NAME: ${DB_MYSQL_DB_NAME:?Set DB_MYSQL_DB_NAME in .env}
+      DB_MYSQL_USERNAME: ${DB_MYSQL_USERNAME:?Set DB_MYSQL_USERNAME in .env}
+      DB_MYSQL_PASSWORD: ${DB_MYSQL_PASSWORD:?Set DB_MYSQL_PASSWORD in .env}
+      DB_MYSQL_URL: ${DB_MYSQL_URL:?Set DB_MYSQL_URL in .env}
+      IMPORT_JAVA_OPTS: ${IMPORT_JAVA_OPTS:--Xms1g -Xmx8g}
+      AUTH_MODE: ${AUTH_MODE:-false}
+      PORTAL_HOME: /cbioportal-webapp
+      PORTAL_URL: http://cbioportal:8080/cbioportal
+      REPORTS_DIR: /reports
+    depends_on:
+      cbioportal:
+        condition: service_healthy
+    volumes:
+      - ./reports:/reports
+      - ./runtime/application.properties:/cbioportal-webapp/application.properties:ro
+    networks: [clamp]
+    restart: "no"
+
+networks:
+  clamp:
+
+volumes:
+  cbioportal_mysql_data:
+  cbioportal_mongo_data:

@@ -1,0 +1,8 @@
+# Synthetic hg38 MAF fixture. Variant records are for software testing only.
+Hugo_Symbol	Entrez_Gene_Id	Center	NCBI_Build	Chromosome	Start_Position	End_Position	Strand	Variant_Classification	Variant_Type	Reference_Allele	Tumor_Seq_Allele1	Tumor_Seq_Allele2	Tumor_Sample_Barcode	Matched_Norm_Sample_Barcode	Match_Norm_Seq_Allele1	Match_Norm_Seq_Allele2	Verification_Status	Validation_Status	Mutation_Status	Sequencing_Phase	Sequence_Source	Validation_Method	Score	BAM_File	Sequencer	t_ref_count	t_alt_count	n_ref_count	n_alt_count	HGVSp_Short	SWISSPROT
+TP53	7157	SYNTHETIC_CENTER	GRCh38	17	7675088	7675088	+	Missense_Mutation	SNP	C	C	T	SYNTH_SAMPLE_001				Unknown	Untested	Somatic	Phase_1	WXS	None			Synthetic	80	40	0	0	p.R175H	P04637
+KRAS	3845	SYNTHETIC_CENTER	GRCh38	12	25245350	25245350	+	Missense_Mutation	SNP	C	C	T	SYNTH_SAMPLE_002				Unknown	Untested	Somatic	Phase_1	WXS	None			Synthetic	75	35	0	0	p.G12D	P01116
+BRAF	673	SYNTHETIC_CENTER	GRCh38	7	140753336	140753336	+	Missense_Mutation	SNP	A	A	T	SYNTH_SAMPLE_003				Unknown	Untested	Somatic	Phase_1	WXS	None			Synthetic	90	45	0	0	p.V600E	P15056
+PIK3CA	5290	SYNTHETIC_CENTER	GRCh38	3	179234297	179234297	+	Missense_Mutation	SNP	A	A	G	SYNTH_SAMPLE_004				Unknown	Untested	Somatic	Phase_1	WXS	None			Synthetic	70	30	0	0	p.H1047R	P42336
+EGFR	1956	SYNTHETIC_CENTER	GRCh38	7	55191822	55191822	+	Missense_Mutation	SNP	T	T	G	SYNTH_SAMPLE_005				Unknown	Untested	Somatic	Phase_1	WXS	None			Synthetic	85	38	0	0	p.L858R	P00533
+IDH1	3417	SYNTHETIC_CENTER	GRCh38	2	208248389	208248389	+	Missense_Mutation	SNP	C	C	T	SYNTH_SAMPLE_006				Unknown	Untested	Somatic	Phase_1	WXS	None			Synthetic	88	42	0	0	p.R132H	O75874

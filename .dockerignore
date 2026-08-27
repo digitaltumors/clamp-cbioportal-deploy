@@ -1,0 +1,15 @@
+.git
+.github
+.env
+backups
+reports
+runtime
+secrets
+auth/keycloak/*.rendered.json
+private-data
+**/.ipynb_checkpoints
+**/*.log
+**/*.pid
+**/__pycache__
+**/*.pyc
+design.md

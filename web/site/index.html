@@ -1,0 +1,347 @@
+<!doctype html>
+<html>
+  <head>
+    <title>cBioPortal Embed Test</title>
+    <style>
+      html, body {
+        margin: 0;
+        height: 100%;
+        font-family: Arial, sans-serif;
+      }
+
+      .tabs {
+        display: flex;
+        align-items: center;
+        height: 48px;
+        background: #f2f2f2;
+        border-bottom: 1px solid #ccc;
+        padding: 0 12px;
+        gap: 8px;
+      }
+
+      .tab-button {
+        border: 1px solid #bbb;
+        background: white;
+        padding: 8px 14px;
+        cursor: pointer;
+        border-radius: 6px 6px 0 0;
+        font-size: 14px;
+      }
+
+      .tab-button.active {
+        background: #ffffff;
+        border-bottom: 2px solid #ffffff;
+        font-weight: bold;
+      }
+
+      .tab-content {
+        display: none;
+        height: calc(100vh - 49px);
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      iframe {
+        width: 100%;
+        height: 100%;
+        border: 0;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      .portal-frame {
+        position: relative;
+        width: 100%;
+        height: 100%;
+      }
+
+      .auth-panel {
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        padding: 24px;
+        background: #f7f8fa;
+      }
+
+      .auth-card {
+        max-width: 520px;
+        padding: 28px;
+        border: 1px solid #d7dce2;
+        border-radius: 10px;
+        background: white;
+        box-shadow: 0 4px 18px rgb(0 0 0 / 8%);
+        text-align: center;
+      }
+
+      .auth-card h2 {
+        margin-top: 0;
+      }
+
+      .auth-button {
+        border: 0;
+        border-radius: 5px;
+        padding: 10px 18px;
+        background: #337ab7;
+        color: white;
+        cursor: pointer;
+        font-size: 15px;
+      }
+
+      .auth-button:disabled {
+        cursor: wait;
+        opacity: 0.65;
+      }
+
+      .auth-status {
+        min-height: 20px;
+        margin-bottom: 0;
+        color: #555;
+      }
+
+      .template-panel {
+        padding: 24px;
+      }
+
+      .template-card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 16px;
+        max-width: 800px;
+        background: #fff;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="tabs">
+      <button class="tab-button active" data-tab="cbioportal">cBioPortal</button>
+      <button class="tab-button" data-tab="summary">Summary</button>
+      <button class="tab-button" data-tab="notes">Notes</button>
+      <button class="tab-button" data-tab="methods">Methods</button>
+    </div>
+
+    <div id="cbioportal" class="tab-content active">
+      <div class="portal-frame">
+        <div id="cbio-auth-panel" class="auth-panel" hidden>
+          <div class="auth-card">
+            <h2>Sign in to cBioPortal</h2>
+            <p>Authentication must complete in a separate window before the portal can be displayed here.</p>
+            <button id="cbio-sign-in" class="auth-button" type="button">Sign in</button>
+            <p id="cbio-auth-status" class="auth-status" aria-live="polite"></p>
+          </div>
+        </div>
+        <iframe
+          src="about:blank"
+          data-portal-src="/cbioportal/"
+          title="Local cBioPortal"
+          hidden>
+        </iframe>
+      </div>
+    </div>
+
+    <div id="summary" class="tab-content">
+      <div class="template-panel">
+        <div class="template-card">
+          <h2>Summary</h2>
+          <p>This is a placeholder tab for study, cohort, or analysis summaries.</p>
+
+          <h3>Template fields</h3>
+          <ul>
+            <li>Study name:</li>
+            <li>Cohort:</li>
+            <li>Genes of interest:</li>
+            <li>Key findings:</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div id="notes" class="tab-content">
+      <div class="template-panel">
+        <div class="template-card">
+          <h2>Notes</h2>
+          <p>This is a placeholder for freeform notes.</p>
+
+          <textarea
+            style="width: 100%; height: 300px;"
+            placeholder="Write notes here..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div id="methods" class="tab-content">
+      <div class="template-panel">
+        <div class="template-card">
+          <h2>Methods</h2>
+          <p>This tab can hold workflow notes, filters, preprocessing steps, or interpretation guidance.</p>
+
+          <h3>Template fields</h3>
+          <ul>
+            <li>Data source:</li>
+            <li>Filtering criteria:</li>
+            <li>Analysis method:</li>
+            <li>Version/date:</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <script>
+	const buttons = document.querySelectorAll(".tab-button");
+	const contents = document.querySelectorAll(".tab-content");
+	const cbioIframe = document.querySelector("#cbioportal iframe");
+	const authPanel = document.getElementById("cbio-auth-panel");
+	const signInButton = document.getElementById("cbio-sign-in");
+	const authStatus = document.getElementById("cbio-auth-status");
+	const authenticationUrl = "/cbioportal/saml2/authenticate/cbio-saml-idp";
+	let loginPoll;
+
+	buttons.forEach((button) => {
+		button.addEventListener("click", () => {
+		const tabId = button.dataset.tab;
+
+		buttons.forEach((btn) => btn.classList.remove("active"));
+		contents.forEach((content) => content.classList.remove("active"));
+
+		button.classList.add("active");
+		document.getElementById(tabId).classList.add("active");
+		});
+	});
+
+	function showPortal() {
+		authPanel.hidden = true;
+		cbioIframe.hidden = false;
+		if (cbioIframe.src === "about:blank") {
+			cbioIframe.src = cbioIframe.dataset.portalSrc;
+		}
+	}
+
+	function showSignIn(message = "") {
+		cbioIframe.hidden = true;
+		authPanel.hidden = false;
+		signInButton.disabled = false;
+		authStatus.textContent = message;
+	}
+
+	async function checkCbioAuthentication() {
+		try {
+			const response = await fetch("/cbioportal/api/info", {
+				credentials: "same-origin",
+				cache: "no-store"
+			});
+
+			if (response.ok) {
+				showPortal();
+				return true;
+			}
+
+			if (response.status === 401 || response.status === 403) {
+				showSignIn();
+				return false;
+			}
+
+			showSignIn(`cBioPortal returned HTTP ${response.status}.`);
+		} catch (error) {
+			showSignIn("cBioPortal is currently unavailable.");
+		}
+		return false;
+	}
+
+	signInButton.addEventListener("click", () => {
+		const loginWindow = window.open(
+			authenticationUrl,
+			"clamp-cbioportal-login",
+			"popup=yes,width=720,height=760"
+		);
+
+		if (!loginWindow) {
+			window.location.href = authenticationUrl;
+			return;
+		}
+
+		signInButton.disabled = true;
+		authStatus.textContent = "Complete sign-in in the authentication window.";
+		clearInterval(loginPoll);
+		loginPoll = window.setInterval(async () => {
+			if (loginWindow.closed) {
+				clearInterval(loginPoll);
+				const authenticated = await checkCbioAuthentication();
+				if (!authenticated) {
+					authStatus.textContent = "Sign-in was not completed. Please try again.";
+				}
+				return;
+			}
+
+			try {
+				const path = loginWindow.location.pathname;
+				const returnedToPortal =
+					loginWindow.location.origin === window.location.origin &&
+					path.startsWith("/cbioportal/") &&
+					!path.startsWith("/cbioportal/saml2/") &&
+					!path.startsWith("/cbioportal/login");
+
+				if (returnedToPortal) {
+					loginWindow.close();
+				}
+			} catch (error) {
+				// Cross-origin access is expected while Keycloak owns the popup.
+			}
+		}, 500);
+	});
+
+ 	function keepCbioLinksInsideIframe() {
+		const iframeWindow = cbioIframe.contentWindow;
+		const iframeDocument = cbioIframe.contentDocument || iframeWindow.document;
+
+		iframeDocument.addEventListener("click", (event) => {
+			const link = event.target.closest("a");
+
+			if (!link || !link.href) {
+				return;
+			}
+
+		const url = new URL(link.href);
+
+		// Only intercept local cBioPortal links.
+		const isLocalCbio =
+		url.origin === window.location.origin &&
+		url.pathname.startsWith("/cbioportal/");
+
+		if (!isLocalCbio) {
+			return;
+		}
+
+		event.preventDefault();
+		iframeWindow.location.href = url.href;
+		}, true);
+	}
+
+	cbioIframe.addEventListener("load", () => {
+		try {
+			const iframeDocument = cbioIframe.contentDocument;
+			if (
+				iframeDocument &&
+				iframeDocument.location.pathname.startsWith("/cbioportal/") &&
+				iframeDocument.body &&
+				iframeDocument.body.textContent.trim() === ""
+			) {
+				checkCbioAuthentication();
+				return;
+			}
+			keepCbioLinksInsideIframe();
+		} catch (error) {
+			console.warn("Could not attach iframe link handler:", error);
+		}
+	});
+
+	checkCbioAuthentication();
+	</script>
+  </body>
+</html>

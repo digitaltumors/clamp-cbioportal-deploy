@@ -1,0 +1,84 @@
+{
+  "realm": "${KEYCLOAK_REALM}",
+  "displayName": "CLAMP local authentication",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "rememberMe": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "clients": [
+    {
+      "clientId": "${SAML_ENTITY_ID}",
+      "name": "CLAMP cBioPortal",
+      "enabled": true,
+      "protocol": "saml",
+      "frontchannelLogout": true,
+      "baseUrl": "${PUBLIC_BASE_URL}/cbioportal/",
+      "adminUrl": "${PUBLIC_BASE_URL}/cbioportal/",
+      "redirectUris": ["${PUBLIC_BASE_URL}/cbioportal/*"],
+      "attributes": {
+        "saml.assertion.signature": "true",
+        "saml.server.signature": "true",
+        "saml.client.signature": "false",
+        "saml.force.post.binding": "true",
+        "saml.authnstatement": "true",
+        "saml_name_id_format": "email",
+        "saml_force_name_id_format": "true",
+        "saml.signature.algorithm": "RSA_SHA256",
+        "saml_signature_canonicalization_method": "http://www.w3.org/2001/10/xml-exc-c14n#",
+        "saml_assertion_consumer_url_post": "${PUBLIC_BASE_URL}/cbioportal/login/saml2/sso/${SAML_REGISTRATION_ID}",
+        "saml_single_logout_service_url_post": "${PUBLIC_BASE_URL}/cbioportal/logout/saml2/slo"
+      },
+      "protocolMappers": [
+        {
+          "name": "email",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-property-mapper",
+          "consentRequired": false,
+          "config": {"user.attribute": "email", "friendly.name": "email", "attribute.name": "email", "attribute.nameformat": "Basic"}
+        },
+        {
+          "name": "username",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-property-mapper",
+          "consentRequired": false,
+          "config": {"user.attribute": "username", "friendly.name": "username", "attribute.name": "username", "attribute.nameformat": "Basic"}
+        },
+        {
+          "name": "roles",
+          "protocol": "saml",
+          "protocolMapper": "saml-role-list-mapper",
+          "consentRequired": false,
+          "config": {"single": "false", "attribute.name": "Role", "attribute.nameformat": "Basic"}
+        }
+      ]
+    }
+  ],
+  "roles": {
+    "client": {
+      "${SAML_ENTITY_ID}": [
+        {
+          "name": "ALL",
+          "description": "Local development access to all cBioPortal studies",
+          "clientRole": true
+        }
+      ]
+    }
+  },
+  "users": [
+    {
+      "username": "${AUTH_TEST_USERNAME}",
+      "email": "${AUTH_TEST_USERNAME}@example.test",
+      "firstName": "CLAMP",
+      "lastName": "Test User",
+      "enabled": true,
+      "emailVerified": true,
+      "clientRoles": {
+        "${SAML_ENTITY_ID}": ["ALL"]
+      },
+      "credentials": [{"type": "password", "value": "${AUTH_TEST_PASSWORD}", "temporary": false}]
+    }
+  ]
+}
