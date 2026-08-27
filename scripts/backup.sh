@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+# shellcheck source=lib.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
 require_config
 destination="$ROOT_DIR/backups"
 if [[ "${1:-}" == "--destination" ]]; then
   [[ -n "${2:-}" ]] || die "--destination requires a path"
-  destination="$(realpath -m "$2")"
+  destination="$(canonical_path "$2")"
 elif (( $# > 0 )); then
   die "Usage: backup.sh [--destination PATH]"
 fi
@@ -19,6 +20,8 @@ mkdir -p "$backup_dir"
 
 compose up -d cbioportal-database cbioportal-session-database
 log "Creating MySQL logical backup"
+# Variables below intentionally expand inside the database container.
+# shellcheck disable=SC2016
 compose exec -T cbioportal-database sh -c \
   'exec mysqldump -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" --single-transaction --no-tablespaces --routines --triggers --add-drop-table "$MYSQL_DATABASE"' \
   | gzip -9 > "$backup_dir/mysql.sql.gz"
@@ -39,6 +42,6 @@ compose exec -T cbioportal-session-database mongodump \
 
 (
   cd "$backup_dir"
-  sha256sum mysql.sql.gz mongo.archive.gz manifest.env > checksums.sha256
+  sha256_files mysql.sql.gz mongo.archive.gz manifest.env > checksums.sha256
 )
 log "Backup created at $backup_dir"

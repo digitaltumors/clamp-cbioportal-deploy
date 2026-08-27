@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+# shellcheck source=lib.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
 require_config
 "$ROOT_DIR/scripts/prerequisites.sh"
 
-export IMAGE_REVISION="$(image_revision)"
-export STUDY_VERSION="$(study_hash)"
+IMAGE_REVISION="$(image_revision)"
+STUDY_VERSION="$(study_hash)"
+export IMAGE_REVISION STUDY_VERSION
 log "Building images at revision ${IMAGE_REVISION}; study ${STUDY_VERSION:0:12}"
 
 if compose build "$@"; then

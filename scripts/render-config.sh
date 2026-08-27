@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+# shellcheck source=lib.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
 [[ -f "$ENV_FILE" ]] || die "Missing .env"
@@ -83,8 +84,17 @@ for key, value in auth_properties.items():
         rendered += f"{key}={value}\n"
 
 destination = pathlib.Path(output_path)
-temporary = destination.with_suffix(".tmp")
-temporary.write_text(rendered)
-temporary.chmod(0o600)
-temporary.replace(destination)
+if destination.exists() and destination.read_text() == rendered:
+    destination.chmod(0o600)
+elif destination.exists():
+    # Preserve the inode used by Docker Desktop/WSL file bind mounts.
+    with destination.open("w") as output:
+        output.write(rendered)
+        output.flush()
+else:
+    temporary = destination.with_suffix(".tmp")
+    temporary.write_text(rendered)
+    temporary.chmod(0o600)
+    temporary.replace(destination)
+destination.chmod(0o600)
 PY

@@ -20,6 +20,64 @@ require_command() {
   command -v "$1" >/dev/null 2>&1 || die "Required command not found: $1"
 }
 
+
+sed_in_place() {
+  if sed --version >/dev/null 2>&1; then
+    sed -i "$@"
+  else
+    # BSD sed, including the macOS version, requires a backup suffix.
+    sed -i '' "$@"
+  fi
+}
+
+canonical_path() {
+  python3 - "$1" <<'PY'
+import os
+import sys
+print(os.path.realpath(sys.argv[1]))
+PY
+}
+
+file_mode() {
+  if stat -c %a "$1" >/dev/null 2>&1; then
+    stat -c %a "$1"
+  else
+    stat -f %Lp "$1"
+  fi
+}
+
+
+install_generated_file() {
+  local source="$1"
+  local destination="$2"
+  local mode="$3"
+  if [[ -e "$destination" ]]; then
+    # Preserve the inode used by Docker Desktop/WSL file bind mounts.
+    cp "$source" "$destination"
+    rm "$source"
+  else
+    mv "$source" "$destination"
+  fi
+  chmod "$mode" "$destination"
+}
+
+sha256_files() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$@"
+  else
+    shasum -a 256 "$@"
+  fi
+}
+
+verify_sha256_manifest() {
+  local manifest="$1"
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum -c "$manifest"
+  else
+    shasum -a 256 -c "$manifest"
+  fi
+}
+
 require_config() {
   [[ -f "$ENV_FILE" ]] || die "Missing .env. Run ./scripts/configure.sh, then review .env."
   if grep -q 'CHANGE_ME' "$ENV_FILE"; then
@@ -65,14 +123,27 @@ base_url() {
 }
 
 study_hash() {
-  (
-    cd "$ROOT_DIR"
-    find studies/clamp_2026 -type f -print0 \
-      | LC_ALL=C sort -z \
-      | xargs -0 sha256sum \
-      | sha256sum \
-      | awk '{print $1}'
-  )
+  python3 - "$ROOT_DIR" <<'PY'
+import hashlib
+import pathlib
+import sys
+
+root = pathlib.Path(sys.argv[1])
+study = root / "studies" / "clamp_2026"
+records = []
+for path in study.rglob("*"):
+    if not path.is_file():
+        continue
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    records.append((path.relative_to(root).as_posix(), digest.hexdigest()))
+payload = "".join(
+    f"{digest}  {relative}\n" for relative, digest in sorted(records)
+).encode()
+print(hashlib.sha256(payload).hexdigest())
+PY
 }
 
 image_revision() {

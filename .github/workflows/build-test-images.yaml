@@ -18,8 +18,11 @@ jobs:
         run: ./scripts/configure.sh --generate-secrets
       - name: Check shell scripts
         uses: ludeeus/action-shellcheck@master
+        env:
+          SHELLCHECK_OPTS: -x -P SCRIPTDIR
         with:
           scandir: .
+          check_together: 'yes'
       - name: Validate Compose
         run: docker compose --env-file .env -f compose.yaml config --quiet
       - name: Build images

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+# shellcheck source=lib.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
 require_config
@@ -28,9 +29,19 @@ rendered = template_path.read_text()
 for key in required:
     rendered = rendered.replace("${" + key + "}", values[key])
 parsed = json.loads(rendered)
+content = json.dumps(parsed, indent=2) + "\n"
 destination = pathlib.Path(output_path)
-temporary = destination.with_suffix(".tmp")
-temporary.write_text(json.dumps(parsed, indent=2) + "\n")
-temporary.chmod(0o600)
-temporary.replace(destination)
+if destination.exists() and destination.read_text() == content:
+    destination.chmod(0o600)
+elif destination.exists():
+    # Preserve the inode used by Docker Desktop/WSL file bind mounts.
+    with destination.open("w") as output:
+        output.write(content)
+        output.flush()
+else:
+    temporary = destination.with_suffix(".tmp")
+    temporary.write_text(content)
+    temporary.chmod(0o600)
+    temporary.replace(destination)
+destination.chmod(0o600)
 PY

@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+# shellcheck source=lib.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
 require_command docker
 require_command curl
-require_command sha256sum
+command -v sha256sum >/dev/null 2>&1 || command -v shasum >/dev/null 2>&1 \
+  || die "Either sha256sum or shasum is required"
 require_command python3
 
 docker compose version >/dev/null 2>&1 || die "Docker Compose v2 is required"
@@ -27,7 +29,7 @@ if [[ -f "$ENV_FILE" && "$(auth_mode)" == "saml" ]]; then
   for path in secrets/saml/idp-metadata.xml secrets/saml/local.crt secrets/saml/local.key runtime/keycloak-realm.json; do
     [[ -f "$ROOT_DIR/$path" ]] || die "SAML authentication file is missing: $path; run configure-auth.sh --local"
   done
-  key_mode="$(stat -c %a "$ROOT_DIR/secrets/saml/local.key")"
+  key_mode="$(file_mode "$ROOT_DIR/secrets/saml/local.key")"
   [[ "$key_mode" == "600" ]] || die "SAML private key must have mode 600, found $key_mode"
   openssl x509 -checkend $((30 * 86400)) -noout -in "$ROOT_DIR/secrets/saml/local.crt" >/dev/null \
     || die "SAML certificate expires in less than 30 days"

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+# shellcheck source=lib.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
 force=false
@@ -19,9 +20,7 @@ umask 077
 openssl req -newkey rsa:3072 -nodes -sha256 \
   -keyout "$key.tmp" -x509 -days 825 -out "$certificate.tmp" \
   -subj "/CN=CLAMP local cBioPortal SAML/O=CLAMP development"
-chmod 0600 "$key.tmp"
-chmod 0644 "$certificate.tmp"
-mv "$key.tmp" "$key"
-mv "$certificate.tmp" "$certificate"
+install_generated_file "$key.tmp" "$key" 0600
+install_generated_file "$certificate.tmp" "$certificate" 0644
 log "Generated local SAML key pair"
 openssl x509 -in "$certificate" -noout -fingerprint -sha256 -enddate

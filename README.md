@@ -5,7 +5,7 @@ This repository builds and operates a local cBioPortal deployment containing the
 ## Requirements
 
 - Docker Engine or Docker Desktop with Compose v2
-- Bash, curl, Python 3, and GNU `sha256sum`
+- Bash, curl, Python 3, and either `sha256sum` (Linux) or `shasum` (macOS)
 - at least 10 GiB of free disk space
 - enough Docker memory for cBioPortal and the importer (8–12 GiB recommended during import)
 
@@ -50,6 +50,16 @@ If the local Keycloak data volume is deliberately recreated, its IdP signing cer
 ```bash
 ./scripts/fetch-idp-metadata.sh
 docker compose --env-file .env -f compose.yaml -f compose.auth.yaml restart cbioportal
+```
+
+### Docker Desktop and WSL bind-mount recovery
+
+Generated configuration files are updated without replacing their filesystem inode so Docker Desktop can retain file bind mounts across container restarts. If a container was created by an older release, or the repository was moved while containers were running, Docker may report an OCI mount error referencing `docker-desktop-bind-mounts` and `application.properties`. After updating the repository, recreate the containers once; named database volumes are preserved:
+
+```bash
+./scripts/down.sh
+./scripts/up.sh
+./scripts/smoke-test.sh
 ```
 
 ## Normal operation

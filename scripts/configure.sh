@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+# shellcheck source=lib.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
 force=false
@@ -19,13 +20,13 @@ if [[ "$generate_secrets" == true ]]; then
   require_command openssl
   db_password="$(openssl rand -hex 24)"
   root_password="$(openssl rand -hex 24)"
-  sed -i \
+  sed_in_place \
     -e "s/^DB_MYSQL_PASSWORD=.*/DB_MYSQL_PASSWORD=${db_password}/" \
     -e "s/^DB_MYSQL_ROOT_PASSWORD=.*/DB_MYSQL_ROOT_PASSWORD=${root_password}/" \
     "$ENV_FILE"
 fi
 
-sed -i \
+sed_in_place \
   -e "s/^HOST_UID=.*/HOST_UID=$(id -u)/" \
   -e "s/^HOST_GID=.*/HOST_GID=$(id -g)/" \
   "$ENV_FILE"

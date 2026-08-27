@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+# shellcheck source=lib.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
 require_config
@@ -30,6 +31,5 @@ if not entity_id or realm not in entity_id:
 if "X509Certificate" not in path.read_text():
     raise SystemExit("SAML metadata contains no signing certificate")
 PY
-chmod 0644 "$temporary"
-mv "$temporary" "$destination"
+install_generated_file "$temporary" "$destination" 0644
 log "Stored validated IdP metadata at $destination"

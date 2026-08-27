@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+# shellcheck source=lib.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
 force=false
@@ -14,8 +15,9 @@ require_config
 ensure_reports_dir
 "$ROOT_DIR/scripts/up.sh"
 
-export IMAGE_REVISION="$(image_revision)"
-export STUDY_VERSION="$(study_hash)"
+IMAGE_REVISION="$(image_revision)"
+STUDY_VERSION="$(study_hash)"
+export IMAGE_REVISION STUDY_VERSION
 marker="$ROOT_DIR/reports/last-import.env"
 study_url="$(base_url)/cbioportal/api/studies/clamp_2026"
 study_exists=false
