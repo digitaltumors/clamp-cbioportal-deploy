@@ -3,12 +3,15 @@ set -Eeuo pipefail
 # shellcheck source=lib.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
+umask 077
+
 require_config
-[[ "$(env_value AUTH_MODE)" == "saml" ]] || exit 0
+[[ "$(env_value AUTH_MODE)" == "saml" && "$(auth_idp_mode)" == "local" ]] || exit 0
 
 python3 - "$ENV_FILE" "$ROOT_DIR/auth/keycloak/realm-template.json" \
   "$ROOT_DIR/runtime/keycloak-realm.json" <<'PY'
 import json
+import os
 import pathlib
 import sys
 
@@ -39,7 +42,11 @@ elif destination.exists():
         output.write(content)
         output.flush()
 else:
-    temporary = destination.with_suffix(".tmp")
+    import tempfile
+    handle, temporary_name = tempfile.mkstemp(prefix=destination.name + ".", dir=destination.parent)
+    os.fchmod(handle, 0o600)
+    os.close(handle)
+    temporary = pathlib.Path(temporary_name)
     temporary.write_text(content)
     temporary.chmod(0o600)
     temporary.replace(destination)

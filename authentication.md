@@ -1,10 +1,10 @@
 # Authentication plan for the CLAMP cBioPortal deployment
 
-> Implementation status: the local/test SAML path described here is implemented with Keycloak 26.2.4, authenticated cBioPortal access, and the session service. The institutional production integration remains environment-specific. Testing the pinned cBioPortal release showed that SAML mode always enables study permission evaluation; the local test user therefore receives the `ALL` client role. Production roles must be narrowed to the approved studies or groups.
+> Implementation status: the local/test SAML path described here is implemented with Keycloak 26.7.3, authenticated cBioPortal access, and the session service. The institutional production integration remains environment-specific. Testing the pinned cBioPortal release showed that SAML mode always enables study permission evaluation; the local test user therefore receives the `ALL` client role. Production roles must be narrowed to the approved studies or groups.
 
 ## Objective
 
-Add supported user authentication to the pinned cBioPortal 6.4.1 deployment, reconnect the existing session service so saved/shared sessions work, and retain the current same-origin nginx wrapper at `http://localhost:8088` for local development.
+Add supported user authentication to the pinned cBioPortal 6.4.5 deployment, reconnect the existing session service so saved/shared sessions work, and retain the current same-origin nginx wrapper at `http://localhost:8088` for local development.
 
 Authentication and authorization are separate milestones:
 
@@ -15,14 +15,14 @@ This plan initially authenticates cBioPortal. The custom Summary, Notes, and Met
 
 ## Recommended approach
 
-Use SAML 2.0 for the initial implementation because cBioPortal 6.4.1 explicitly accepts `authenticate=saml`, the repository already has an nginx reverse proxy, and cBioPortal has documented SAML support for Keycloak and institutional identity providers.
+Use SAML 2.0 for the initial implementation because cBioPortal 6.4.5 explicitly accepts `authenticate=saml`, the repository already has an nginx reverse proxy, and cBioPortal has documented SAML support for Keycloak and institutional identity providers.
 
 Use two identity-provider environments:
 
 1. **Local/test:** a pinned Keycloak container and disposable test realm, delivered through a development-only Compose overlay.
 2. **Production:** the institution's managed SAML identity provider, or a separately operated and hardened Keycloak instance. Do not deploy the old Keycloak 16 development example from the upstream compose repository to production.
 
-Before selecting a Keycloak tag for the local fixture, run a compatibility spike against cBioPortal 6.4.1. The current cBioPortal documentation discusses modern Keycloak releases, while older Docker examples use Keycloak 16; neither should be assumed compatible without testing. Pin the accepted Keycloak image by version and digest.
+Before selecting a Keycloak tag for the local fixture, run a compatibility spike against cBioPortal 6.4.5. The current cBioPortal documentation discusses modern Keycloak releases, while older Docker examples use Keycloak 16; neither should be assumed compatible without testing. Pin the accepted Keycloak image by version and digest.
 
 OAuth2/OIDC remains a viable alternative if the institution requires it. If selected, use `authenticate=oauth2`, issuer discovery, a confidential client secret, and the same staged testing described below. Do not configure SAML and OAuth2 simultaneously in the first implementation.
 
@@ -169,7 +169,7 @@ https://clamp.example.edu/cbioportal/login/saml2/sso/cbio-saml-idp
 https://clamp.example.edu/cbioportal/saml2/service-provider-metadata/cbio-saml-idp
 ```
 
-Treat those as candidates until confirmed from the running 6.4.1 application. Register only the confirmed URLs with the IdP.
+Treat those as candidates until confirmed from the running 6.4.5 application. Register only the confirmed URLs with the IdP.
 
 Production authentication must use HTTPS. Terminate TLS at nginx or a trusted ingress/load balancer, set `X-Forwarded-Proto: https`, use secure cookies, and redirect HTTP to HTTPS. Never accept SAML assertions over plain HTTP outside isolated local testing.
 

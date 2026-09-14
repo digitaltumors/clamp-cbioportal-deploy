@@ -17,3 +17,4 @@ __pycache__/
 studies/*
 !studies/clamp_2026/
 !studies/clamp_2026/**
+.vscode/

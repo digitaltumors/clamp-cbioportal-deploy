@@ -39,13 +39,18 @@ compose restart cbioportal
 wait_for_url "$(base_url)/cbioportal/api/health" 300 \
   || die "cBioPortal did not recover after import"
 if [[ "$(auth_mode)" == "saml" ]]; then
-  "$ROOT_DIR/scripts/test-auth-login.py" "$ROOT_DIR"
+  if [[ "$(auth_idp_mode)" == "local" ]]; then
+    "$ROOT_DIR/scripts/test-auth-login.py" "$ROOT_DIR"
+  else
+    "$ROOT_DIR/scripts/test-auth-config.sh"
+  fi
 else
   curl -fsS "$study_url" | grep -q '"studyId"[[:space:]]*:[[:space:]]*"clamp_2026"' \
     || die "Import completed but clamp_2026 was not returned by the studies API"
 fi
 
-tmp_marker="$marker.tmp"
+tmp_marker="$(mktemp "${marker}.XXXXXX")"
+trap 'rm -f "$tmp_marker"' EXIT
 {
   printf 'STUDY_ID=clamp_2026\n'
   printf 'STUDY_VERSION=%s\n' "$STUDY_VERSION"

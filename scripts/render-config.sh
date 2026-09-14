@@ -3,11 +3,14 @@ set -Eeuo pipefail
 # shellcheck source=lib.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
+umask 077
+
 [[ -f "$ENV_FILE" ]] || die "Missing .env"
 mkdir -p "$ROOT_DIR/runtime"
 
 python3 - "$ENV_FILE" "$ROOT_DIR/cbioportal/application.properties" \
   "$ROOT_DIR/runtime/application.properties" <<'PY'
+import os
 import pathlib
 import sys
 
@@ -92,7 +95,11 @@ elif destination.exists():
         output.write(rendered)
         output.flush()
 else:
-    temporary = destination.with_suffix(".tmp")
+    import tempfile
+    handle, temporary_name = tempfile.mkstemp(prefix=destination.name + ".", dir=destination.parent)
+    os.fchmod(handle, 0o600)
+    os.close(handle)
+    temporary = pathlib.Path(temporary_name)
     temporary.write_text(rendered)
     temporary.chmod(0o600)
     temporary.replace(destination)

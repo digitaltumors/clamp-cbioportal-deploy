@@ -2,7 +2,14 @@ name: ${COMPOSE_PROJECT_NAME:-clamp-cbioportal}
 
 services:
   cbioportal-database:
-    image: mysql:${MYSQL_VERSION:-8.0}
+    image: ${CLAMP_MYSQL_IMAGE:-clamp-mysql:local}
+    build:
+      context: ./database/mysql
+      dockerfile: Dockerfile
+      args:
+        MYSQL_BASE: mysql:${MYSQL_VERSION:-8.0.46@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b}
+        GOSU_BUILDER: golang:${GOSU_BUILDER_VERSION:-1.27.1-alpine3.24@sha256:cf6fca6641884b8433441b2b0652976f975e1d0fdd26d177eaaf8596087f3125}
+        IMAGE_REVISION: ${IMAGE_REVISION:-local}
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: ${DB_MYSQL_DB_NAME:?Set DB_MYSQL_DB_NAME in .env}
@@ -14,7 +21,11 @@ services:
       - ./database/init/cgds.sql:/docker-entrypoint-initdb.d/01-cgds.sql:ro
       - ./database/init/seed.sql.gz:/docker-entrypoint-initdb.d/02-seed.sql.gz:ro
       - cbioportal_mysql_data:/var/lib/mysql
-    networks: [clamp]
+    networks: [portal-database]
+    security_opt: [no-new-privileges:true]
+    pids_limit: ${MYSQL_PIDS_LIMIT:-512}
+    mem_limit: ${MYSQL_MEMORY_LIMIT:-4g}
+    cpus: ${MYSQL_CPU_LIMIT:-2.0}
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
       interval: 10s
@@ -23,29 +34,66 @@ services:
       start_period: 120s
 
   cbioportal-session-database:
-    image: mongo:${MONGO_VERSION:-4.2}
+    image: mongo:${MONGO_VERSION:-7.0.41@sha256:b096b4cb9269f3ebcf363be63f1c50920f786879d03a1890347a3bf33f1f0df0}
     restart: unless-stopped
+    profiles: [session]
     environment:
       MONGO_INITDB_DATABASE: session-service
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?Set MONGO_ROOT_USERNAME in .env}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?Set MONGO_ROOT_PASSWORD in .env}
+      MONGO_APP_USERNAME: ${MONGO_APP_USERNAME:?Set MONGO_APP_USERNAME in .env}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?Set MONGO_APP_PASSWORD in .env}
     volumes:
+      - ./database/mongo/init-session-user.sh:/docker-entrypoint-initdb.d/10-session-user.sh:ro
       - cbioportal_mongo_data:/data/db
-    networks: [clamp]
+    networks: [session-database]
+    security_opt: [no-new-privileges:true]
+    pids_limit: ${MONGO_PIDS_LIMIT:-512}
+    mem_limit: ${MONGO_MEMORY_LIMIT:-2g}
+    cpus: ${MONGO_CPU_LIMIT:-1.5}
     healthcheck:
-      test: ["CMD", "mongo", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      test:
+        - CMD-SHELL
+        - >-
+          mongosh --quiet --host 127.0.0.1
+          --username "$$MONGO_INITDB_ROOT_USERNAME"
+          --password "$$MONGO_INITDB_ROOT_PASSWORD"
+          --authenticationDatabase admin
+          --eval "quit(db.adminCommand('ping').ok ? 0 : 1)"
       interval: 10s
       timeout: 5s
       retries: 30
+      start_period: 30s
 
   cbioportal-session:
-    image: cbioportal/session-service:${SESSION_SERVICE_VERSION:-0.6.4}
+    image: ${CLAMP_SESSION_SERVICE_IMAGE:-clamp-session-service:local}
+    build:
+      context: ./session-service
+      dockerfile: Dockerfile
+      args:
+        SESSION_SERVICE_BASE: cbioportal/session-service:${SESSION_SERVICE_VERSION:-0.6.5@sha256:5be37b996297dc9ca2503988407e79377c09acec74d06c9b15a9ff5e95f966d3}
+        JAVA_RUNTIME_BASE: eclipse-temurin:${SESSION_JAVA_RUNTIME_VERSION:-21-jre-alpine@sha256:974b08960c5d96694c780e65b2d5705268ab1e1ca1a0dd0caf4ba6c3fe34d699}
+        IMAGE_REVISION: ${IMAGE_REVISION:-local}
     restart: unless-stopped
+    profiles: [session]
+    user: "${SESSION_SERVICE_UID:-10001}:${SESSION_SERVICE_GID:-10001}"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: ${SESSION_PIDS_LIMIT:-256}
+    mem_limit: ${SESSION_MEMORY_LIMIT:-1g}
+    cpus: ${SESSION_CPU_LIMIT:-1.0}
     environment:
       SERVER_PORT: 5001
-      JAVA_OPTS: -Dspring.data.mongodb.uri=mongodb://cbioportal-session-database:27017/session-service
+      JAVA_TOOL_OPTIONS: >-
+        -Xms128m -Xmx${SESSION_JAVA_HEAP:-512m}
+        -Dspring.data.mongodb.uri=mongodb://${MONGO_APP_USERNAME}:${MONGO_APP_PASSWORD}@cbioportal-session-database:27017/session-service?authSource=session-service
     depends_on:
       cbioportal-session-database:
         condition: service_healthy
-    networks: [clamp]
+    networks: [session-api, session-database]
 
   cbioportal:
     image: ${CLAMP_CBIOPORTAL_IMAGE:-clamp-cbioportal:local}
@@ -53,9 +101,18 @@ services:
       context: ./cbioportal
       dockerfile: Dockerfile
       args:
-        CBIOPORTAL_BASE: cbioportal/cbioportal:${CBIOPORTAL_VERSION:-6.4.1}
+        CBIOPORTAL_BASE: cbioportal/cbioportal:${CBIOPORTAL_VERSION:-6.4.5@sha256:96809f5607be1fa02177faae2219d8cd61bb23c6ef79b8e05ba286606ae94b6c}
         IMAGE_REVISION: ${IMAGE_REVISION:-local}
     restart: unless-stopped
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=512m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: ${CBIOPORTAL_PIDS_LIMIT:-512}
+    mem_limit: ${CBIOPORTAL_MEMORY_LIMIT:-6g}
+    cpus: ${CBIOPORTAL_CPU_LIMIT:-3.0}
     environment:
       DB_MYSQL_DB_NAME: ${DB_MYSQL_DB_NAME:?Set DB_MYSQL_DB_NAME in .env}
       DB_MYSQL_USERNAME: ${DB_MYSQL_USERNAME:?Set DB_MYSQL_USERNAME in .env}
@@ -64,8 +121,6 @@ services:
       PORTAL_HOME: /cbioportal-webapp
       JAVA_OPTS: ${CBIOPORTAL_JAVA_OPTS:--Xms1g -Xmx4g}
       WEBAPP_OPTS: --spring.config.location=file:/cbioportal-webapp/application.properties
-    # cBioPortal 6.4.1 contains org.cbioportal.PortalApplication even though its
-    # published default command names org.cbioportal.application.PortalApplication.
     command:
       - sh
       - -c
@@ -77,10 +132,8 @@ services:
     depends_on:
       cbioportal-database:
         condition: service_healthy
-      cbioportal-session:
-        condition: service_started
     expose: ["8080"]
-    networks: [clamp]
+    networks: [portal-web, portal-database, session-api]
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/cbioportal/api/health"]
       interval: 15s
@@ -94,17 +147,26 @@ services:
       context: ./web
       dockerfile: Dockerfile
       args:
-        NGINX_BASE: nginx:${NGINX_VERSION:-1.27-alpine}
+        NGINX_BASE: nginx:${NGINX_VERSION:-1.31.5-alpine-slim@sha256:3b171d7224b669faa3cc2137fea0a65301791df1ec1f271ebd2a2b7461f7fade}
         IMAGE_REVISION: ${IMAGE_REVISION:-local}
     restart: unless-stopped
+    user: "101:101"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: ${WEB_PIDS_LIMIT:-128}
+    mem_limit: ${WEB_MEMORY_LIMIT:-256m}
+    cpus: ${WEB_CPU_LIMIT:-1.0}
     depends_on:
       cbioportal:
         condition: service_healthy
     ports:
-      - "${WEB_PORT:-8088}:80"
-    networks: [clamp]
+      - "${BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-8088}:8080"
+    networks: [portal-web]
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
       interval: 10s
       timeout: 3s
       retries: 12
@@ -115,11 +177,18 @@ services:
       context: .
       dockerfile: study-loader/Dockerfile
       args:
-        CBIOPORTAL_BASE: cbioportal/cbioportal:${CBIOPORTAL_VERSION:-6.4.1}
+        CBIOPORTAL_BASE: cbioportal/cbioportal:${CBIOPORTAL_VERSION:-6.4.5@sha256:96809f5607be1fa02177faae2219d8cd61bb23c6ef79b8e05ba286606ae94b6c}
         IMAGE_REVISION: ${IMAGE_REVISION:-local}
-        STUDY_VERSION: ${STUDY_VERSION:-unknown}
     profiles: [tools]
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=256m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: ${IMPORT_PIDS_LIMIT:-512}
+    mem_limit: ${IMPORT_MEMORY_LIMIT:-10g}
+    cpus: ${IMPORT_CPU_LIMIT:-4.0}
     working_dir: /tmp
     environment:
       DB_MYSQL_DB_NAME: ${DB_MYSQL_DB_NAME:?Set DB_MYSQL_DB_NAME in .env}
@@ -135,13 +204,20 @@ services:
       cbioportal:
         condition: service_healthy
     volumes:
+      - ${STUDY_DATA_PATH:-./studies/clamp_2026}:/study/clamp_2026:ro
       - ./reports:/reports
       - ./runtime/application.properties:/cbioportal-webapp/application.properties:ro
-    networks: [clamp]
+    networks: [portal-database, session-api]
     restart: "no"
 
 networks:
-  clamp:
+  portal-web:
+  portal-database:
+    internal: true
+  session-api:
+    internal: true
+  session-database:
+    internal: true
 
 volumes:
   cbioportal_mysql_data:

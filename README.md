@@ -6,10 +6,13 @@ This repository builds and operates a local cBioPortal deployment containing the
 
 - Docker Engine or Docker Desktop with Compose v2
 - Bash, curl, Python 3, and either `sha256sum` (Linux) or `shasum` (macOS)
+- `age` when encrypted private-data backups are enabled
 - at least 10 GiB of free disk space
 - enough Docker memory for cBioPortal and the importer (8–12 GiB recommended during import)
 
-This initial deployment intentionally pins cBioPortal 6.4.1 and uses its compatible MySQL schema. Do not replace it with a locally built v7 image; v7 requires a planned ClickHouse migration and fresh data import.
+This initial deployment intentionally pins cBioPortal 6.4.5 and uses its compatible MySQL schema. Do not replace it with a locally built v7 image; v7 requires a planned ClickHouse migration and fresh data import.
+
+The local image layer updates supported operating-system packages before release, uses session-service 0.6.5 on a current Java runtime, uses the slim nginx runtime, rebuilds `gosu` with a patched Go toolchain, and removes the unused MySQL Shell payload. These measures substantially reduce scanner findings without changing cBioPortal's database architecture. Application-library findings that require upstream cBioPortal, session-service, MongoDB, or Keycloak releases remain release-blocking; see [SECURITY.md](SECURITY.md).
 
 The checked-in `clamp_2026` study is a small, wholly synthetic fixture suitable for publishing with the deployment code. It preserves the same cBioPortal study layout and data types without distributing the private CLAMP dataset. Replace it with reviewed private data only in a deployment-specific working copy.
 
@@ -21,13 +24,13 @@ The checked-in `clamp_2026` study is a small, wholly synthetic fixture suitable 
 ./scripts/bootstrap.sh
 ```
 
-Open <http://localhost:8088/test/>. Bootstrap builds the three CLAMP images, starts the databases and services, validates/imports the study exactly once, and runs smoke tests.
+Open <http://localhost:8088/test/>. Bootstrap builds six CLAMP images, starts the databases and services, validates/imports the study exactly once, and runs smoke tests.
 
 The initial deployment runs without authentication and is intended for a private local environment. Configure supported authentication before exposing it to a network.
 
 ## Local authentication
 
-The repository includes a tested local SAML fixture using Keycloak 26.2.4. It protects cBioPortal, gives the generated test user access to all local studies, and enables user-associated sessions through the existing session-service and MongoDB containers.
+The repository includes a tested local SAML fixture using Keycloak 26.7.3. It protects cBioPortal, gives the generated test user access to all local studies, and enables user-associated sessions through the existing session-service and MongoDB containers.
 
 After the first installation and study import, enable it with:
 
@@ -39,7 +42,7 @@ After the first installation and study import, enable it with:
 
 Open <http://localhost:8088/test/> and select **Sign in** in the cBioPortal tab. Authentication opens in a separate window because the identity-provider page cannot run inside the embedded frame. Use the generated test credentials stored in the ignored, mode-0600 `.env` file; after successful login, the window closes and the portal loads in the tab. The wrapper website remains public. `make configure-auth`, `make up`, and `make test-auth` provide the equivalent workflow.
 
-The local realm grants its test user the cBioPortal `ALL` client role. cBioPortal 6.4.1 activates study-level permission checks whenever SAML is enabled, even when `authorization=false`; a SAML `Role` value must therefore match a study identifier/group or be `ALL`. Replace the broad local role with institution-approved study roles before production use.
+The local realm grants its test user the cBioPortal `ALL` client role. cBioPortal 6.4.5 activates study-level permission checks whenever SAML is enabled, even when `authorization=false`; a SAML `Role` value must therefore match a study identifier/group or be `ALL`. Replace the broad local role with institution-approved study roles before production use.
 
 `SAML_IDP_ORIGIN` must be the browser-visible origin of the identity provider, without a trailing path. cBioPortal allows that specific origin so the browser's cross-origin SAML assertion POST can reach the assertion-consumer endpoint. The HTTP localhost fixture also sets `SAML_ALLOW_NULL_ORIGIN=true` because browsers can assign an opaque `null` origin to its form navigation. Do not enable that exception in production: use the institutional HTTPS IdP origin and set `SAML_ALLOW_NULL_ORIGIN=false`.
 
@@ -61,6 +64,11 @@ Generated configuration files are updated without replacing their filesystem ino
 ./scripts/up.sh
 ./scripts/smoke-test.sh
 ```
+
+
+## Production and external SAML
+
+Configure an approved external identity provider with `./scripts/configure-auth.sh --external HTTPS_METADATA_URL`, then set the real HTTPS `PUBLIC_BASE_URL`, `SAML_ENTITY_ID`, and browser-visible `SAML_IDP_ORIGIN` in `.env`. Keep `BIND_ADDRESS` on loopback, place a trusted local TLS ingress in front of nginx, and set `TRUSTED_TLS_PROXY=true`. The prerequisites script rejects direct non-loopback publication and incomplete HTTPS production configuration. See [SECURITY.md](SECURITY.md) for the complete security model and MongoDB 4.2 migration procedure.
 
 ## Normal operation
 
@@ -85,7 +93,7 @@ Replace the reviewed files under `studies/clamp_2026`, then run:
 ./scripts/smoke-test.sh
 ```
 
-The study-loader image is labeled with a deterministic hash of every study file. Normal startup never imports data. An existing study can only be overwritten with the explicit `--force` flag. The database is authoritative for this guard; an audit marker left under `reports/` after database volumes are recreated does not block a fresh import. Validation and import reports, along with the last successful import record, are written to ignored files under `reports/`.
+The generic study-loader image contains no study files. A deterministic hash of the read-only mounted study is recorded in import and backup metadata. Normal startup never imports data. An existing study can only be overwritten with the explicit `--force` flag. The database is authoritative for this guard; an audit marker left under `reports/` after database volumes are recreated does not block a fresh import. Validation and import reports, along with the last successful import record, are written to ignored files under `reports/`.
 
 When SAML is enabled, cBioPortal protects the `/api/info` endpoint used for portal-dependent validator lookups. The loader therefore uses the official validator/importer `--no_portal_checks` mode for authenticated deployments. File-format, metadata, case-list, clinical-data, and mutation-data validation still run; the output explicitly lists the skipped portal-dependent cancer-type, gene, gene-set, and gene-panel checks. Run validation in an equivalent unauthenticated, isolated environment if those four installation-dependent checks are required.
 
@@ -99,7 +107,7 @@ Create a timestamped logical backup:
 ./scripts/backup.sh
 ```
 
-Backups are written beneath `backups/` with MySQL, MongoDB, version metadata, and checksums. Copy them to durable storage; the directory is ignored by Git.
+Backups are written beneath `backups/` with MySQL, MongoDB, version metadata, checksums, mode-0700 directories, and mode-0600 files. For private data, set `BACKUP_AGE_RECIPIENT` to an `age` public recipient; database payloads are then encrypted and restore uses the identity file at `BACKUP_AGE_IDENTITY`. External publication requires encrypted-backup configuration. Copy backups to controlled durable storage; the directory is ignored by Git.
 
 Restore is intentionally guarded and overwrites current database contents:
 
@@ -131,7 +139,7 @@ Back up first. In CI, pass `--yes`; interactive confirmation is disabled when `C
 ./scripts/release.sh
 ```
 
-This validates Compose, lints shell when ShellCheck is installed, builds images, and runs optional Syft/Trivy checks when installed. Add `--integration` for a full bootstrap test on an empty project and `--push` only after setting `IMAGE_REGISTRY`. Image pushes never happen implicitly.
+This validates Compose, requires ShellCheck, builds images, generates SPDX SBOMs, and runs mandatory HIGH/CRITICAL Trivy gates for all seven deployable images. If local Syft or Trivy binaries are absent, immutable scanner containers are used; scanning never silently skips. Reports and deployed image digests are retained under `reports/security`. Add `--integration` for a full bootstrap test on an empty project and `--push` only after setting `IMAGE_REGISTRY`. A push cannot occur unless every scan passes.
 
 ## Generated and ignored files
 

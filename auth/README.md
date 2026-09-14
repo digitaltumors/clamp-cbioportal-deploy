@@ -28,7 +28,7 @@ For production, remove `ALL` and map only reviewed values:
 - a group named in study metadata; or
 - another deliberately configured public-study group.
 
-Do not assume `authorization=false` disables this check in cBioPortal 6.4.1. SAML authentication activates its method-security permission evaluator.
+Do not assume `authorization=false` disables this check in cBioPortal 6.4.5. SAML authentication activates its method-security permission evaluator.
 
 ## Production boundary
 

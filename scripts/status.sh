@@ -7,7 +7,8 @@ require_config
 compose ps
 printf '\nAuthentication mode: %s\n' "$(auth_mode)"
 if [[ "$(auth_mode)" == "saml" ]]; then
-  printf 'Identity provider: http://localhost:%s/realms/%s\n' "$(env_value KEYCLOAK_PORT)" "$(env_value KEYCLOAK_REALM)"
+  printf 'Identity provider mode: %s\n' "$(auth_idp_mode)"
+  printf 'Identity provider origin: %s\n' "$(env_value SAML_IDP_ORIGIN)"
   openssl x509 -in "$ROOT_DIR/secrets/saml/local.crt" -noout -fingerprint -sha256 -enddate | sed 's/^/  /'
 fi
 printf '\nConfigured study hash: %s\n' "$(study_hash)"

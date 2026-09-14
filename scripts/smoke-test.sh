@@ -15,16 +15,22 @@ curl -fsS "$url/test/" | grep -q 'id="cbio-auth-panel"' \
   || die "Custom website authentication panel is missing"
 curl -fsS "$url/cbioportal/api/health" >/dev/null || die "Portal health check failed"
 curl -sSI "$url/cbioportal/" > "$tmp_dir/headers"
-grep -qi "content-security-policy: frame-ancestors 'self'" "$tmp_dir/headers" \
+grep -qi "content-security-policy:.*frame-ancestors 'self'" "$tmp_dir/headers" \
   || die "Expected iframe Content-Security-Policy is missing"
 
 if [[ "$(auth_mode)" == "saml" ]]; then
   "$ROOT_DIR/scripts/test-auth-config.sh"
-  "$ROOT_DIR/scripts/test-auth-login.py" "$ROOT_DIR"
+  if [[ "$(auth_idp_mode)" == "local" ]]; then
+    "$ROOT_DIR/scripts/test-auth-login.py" "$ROOT_DIR"
+  else
+    log "External IdP redirect passed; interactive identity-provider login is not automated"
+  fi
   compose restart cbioportal
   wait_for_url "$url/cbioportal/api/health" 300 || die "Portal failed after authenticated restart"
   "$ROOT_DIR/scripts/test-auth-config.sh"
-  "$ROOT_DIR/scripts/test-auth-login.py" "$ROOT_DIR"
+  if [[ "$(auth_idp_mode)" == "local" ]]; then
+    "$ROOT_DIR/scripts/test-auth-login.py" "$ROOT_DIR"
+  fi
   log "Authenticated smoke tests passed"
   exit 0
 fi

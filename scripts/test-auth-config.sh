@@ -14,17 +14,19 @@ trap 'rm -f "$tmp_headers" "$tmp_body"' EXIT
 
 curl -fsS "$base/healthz" | grep -q '^ok$' || die "nginx is unhealthy"
 curl -fsS "$base/cbioportal/api/health" >/dev/null || die "cBioPortal health endpoint is unavailable"
-curl -fsS "http://localhost:${keycloak_port}/realms/$(env_value KEYCLOAK_REALM)/protocol/saml/descriptor" \
-  | grep -q 'EntityDescriptor' || die "Keycloak SAML metadata is unavailable"
+if [[ "$(auth_idp_mode)" == "local" ]]; then
+  curl -fsS "http://localhost:${keycloak_port}/realms/$(env_value KEYCLOAK_REALM)/protocol/saml/descriptor" \
+    | grep -q 'EntityDescriptor' || die "Keycloak SAML metadata is unavailable"
+fi
 
 curl -sS -D "$tmp_headers" -o "$tmp_body" \
   "$base/cbioportal/saml2/authenticate/$registration"
 if grep -Eq '^HTTP/[^ ]+ 30[23]' "$tmp_headers"; then
-  grep -qi "^location: http://localhost:${keycloak_port}/" "$tmp_headers" \
-    || die "SAML redirect did not target local Keycloak"
+  grep -qi "^location: $(env_value SAML_IDP_ORIGIN)/" "$tmp_headers" \
+    || die "SAML redirect did not target the configured IdP"
 else
-  grep -qi "<form action=\"http://localhost:${keycloak_port}/" "$tmp_body" \
-    || die "SAML POST binding did not target local Keycloak"
+  grep -qi "<form action=\"$(env_value SAML_IDP_ORIGIN)/" "$tmp_body" \
+    || die "SAML POST binding did not target the configured IdP"
   grep -q 'name="SAMLRequest"' "$tmp_body" || die "SAML POST form contains no request"
 fi
 

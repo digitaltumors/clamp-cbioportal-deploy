@@ -1,7 +1,7 @@
 services:
   cbioportal-database:
     ports:
-      - "3306:3306"
+      - "${DEV_BIND_ADDRESS:-127.0.0.1}:3306:3306"
   cbioportal:
     ports:
-      - "8080:8080"
+      - "${DEV_BIND_ADDRESS:-127.0.0.1}:8080:8080"

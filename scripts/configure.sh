@@ -3,6 +3,8 @@ set -Eeuo pipefail
 # shellcheck source=lib.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
+umask 077
+
 force=false
 generate_secrets=false
 for arg in "$@"; do
@@ -20,9 +22,13 @@ if [[ "$generate_secrets" == true ]]; then
   require_command openssl
   db_password="$(openssl rand -hex 24)"
   root_password="$(openssl rand -hex 24)"
+  mongo_root_password="$(openssl rand -hex 24)"
+  mongo_app_password="$(openssl rand -hex 24)"
   sed_in_place \
     -e "s/^DB_MYSQL_PASSWORD=.*/DB_MYSQL_PASSWORD=${db_password}/" \
     -e "s/^DB_MYSQL_ROOT_PASSWORD=.*/DB_MYSQL_ROOT_PASSWORD=${root_password}/" \
+    -e "s/^MONGO_ROOT_PASSWORD=.*/MONGO_ROOT_PASSWORD=${mongo_root_password}/" \
+    -e "s/^MONGO_APP_PASSWORD=.*/MONGO_APP_PASSWORD=${mongo_app_password}/" \
     "$ENV_FILE"
 fi
 

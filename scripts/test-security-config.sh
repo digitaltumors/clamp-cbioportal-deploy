@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+# shellcheck source=lib.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
+
+require_config
+base_json="$(mktemp)"
+auth_json="$(mktemp)"
+trap 'rm -f "$base_json" "$auth_json"' EXIT
+compose --profile '*' config --format json > "$base_json"
+KEYCLOAK_ADMIN_PASSWORD="${KEYCLOAK_ADMIN_PASSWORD:-security-test-only}" \
+AUTH_TEST_PASSWORD="${AUTH_TEST_PASSWORD:-security-test-only}" \
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" --profile session \
+  -f "$AUTH_COMPOSE_FILE" -f "$LOCAL_KEYCLOAK_COMPOSE_FILE" config --format json > "$auth_json"
+python3 - "$base_json" "$auth_json" <<'PY'
+import json
+import pathlib
+import sys
+base = json.loads(pathlib.Path(sys.argv[1]).read_text())
+auth = json.loads(pathlib.Path(sys.argv[2]).read_text())
+services = base["services"]
+port = services["web"]["ports"][0]
+assert port["host_ip"] == "127.0.0.1" and port["target"] == 8080
+assert set(services["web"]["networks"]) == {"portal-web"}
+assert set(services["cbioportal-database"]["networks"]) == {"portal-database"}
+assert set(services["cbioportal-session-database"]["networks"]) == {"session-database"}
+for name in ("web", "cbioportal", "cbioportal-session", "study-loader"):
+    service = services[name]
+    assert service["read_only"] is True
+    assert "ALL" in service["cap_drop"]
+    assert "no-new-privileges:true" in service["security_opt"]
+    assert int(service["pids_limit"]) > 0
+    assert int(service["mem_limit"]) > 0
+study_mount = next(m for m in services["study-loader"]["volumes"] if m["target"] == "/study/clamp_2026")
+assert study_mount["type"] == "bind" and study_mount["read_only"] is True
+assert "@sha256:" in services["cbioportal-database"]["build"]["args"]["MYSQL_BASE"]
+assert "@sha256:" in services["cbioportal-database"]["build"]["args"]["GOSU_BUILDER"]
+assert "@sha256:" in services["cbioportal-session-database"]["image"]
+assert "@sha256:" in services["cbioportal-session"]["build"]["args"]["SESSION_SERVICE_BASE"]
+assert "@sha256:" in services["cbioportal-session"]["build"]["args"]["JAVA_RUNTIME_BASE"]
+keycloak = auth["services"]["keycloak"]
+assert keycloak["ports"][0]["host_ip"] == "127.0.0.1"
+assert "@sha256:" in keycloak["build"]["args"]["KEYCLOAK_BASE"]
+assert "ALL" in keycloak["cap_drop"]
+assert "no-new-privileges:true" in keycloak["security_opt"]
+PY
+grep -q '^studies$' "$ROOT_DIR/.dockerignore"
+grep -q 'github.com/tianon/gosu@v0.0.0-20250923190938-6456aaa0f3c8' "$ROOT_DIR/database/mysql/Dockerfile"
+grep -Eq "default-src 'self'.*object-src 'none'.*frame-ancestors 'self'" \
+  "$ROOT_DIR/web/portal-security-headers.conf"
+if grep -Eiq '^COPY[[:space:]]+((--[^[:space:]]+)[[:space:]]+)*stud(y|ies)([/[:space:]]|$)' "$ROOT_DIR/study-loader/Dockerfile"; then
+  die "Study data must not be copied into the loader image"
+fi
+log "Effective Compose and build-context security assertions passed"

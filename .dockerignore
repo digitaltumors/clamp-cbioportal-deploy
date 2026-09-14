@@ -7,6 +7,7 @@ runtime
 secrets
 auth/keycloak/*.rendered.json
 private-data
+studies
 **/.ipynb_checkpoints
 **/*.log
 **/*.pid

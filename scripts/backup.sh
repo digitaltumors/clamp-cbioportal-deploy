@@ -3,6 +3,8 @@ set -Eeuo pipefail
 # shellcheck source=lib.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
+umask 077
+
 require_config
 destination="$ROOT_DIR/backups"
 if [[ "${1:-}" == "--destination" ]]; then
@@ -13,12 +15,14 @@ elif (( $# > 0 )); then
 fi
 
 mkdir -p "$destination"
+chmod 0700 "$destination"
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 backup_dir="$destination/$timestamp"
 [[ ! -e "$backup_dir" ]] || die "Backup already exists: $backup_dir"
 mkdir -p "$backup_dir"
+chmod 0700 "$backup_dir"
 
-compose up -d cbioportal-database cbioportal-session-database
+compose --profile session up -d cbioportal-database cbioportal-session-database
 log "Creating MySQL logical backup"
 # Variables below intentionally expand inside the database container.
 # shellcheck disable=SC2016
@@ -27,11 +31,28 @@ compose exec -T cbioportal-database sh -c \
   | gzip -9 > "$backup_dir/mysql.sql.gz"
 
 log "Creating MongoDB logical backup"
-compose exec -T cbioportal-session-database mongodump \
-  --db session-service --archive --gzip > "$backup_dir/mongo.archive.gz"
+# Credentials intentionally expand inside the MongoDB container.
+# shellcheck disable=SC2016
+compose --profile session exec -T cbioportal-session-database sh -c \
+  'exec mongodump --host 127.0.0.1 --username "$MONGO_APP_USERNAME" --password "$MONGO_APP_PASSWORD" --authenticationDatabase session-service --db session-service --archive --gzip' \
+  > "$backup_dir/mongo.archive.gz"
+
+encrypted=false
+recipient="$(env_value BACKUP_AGE_RECIPIENT)"
+if [[ -n "$recipient" ]]; then
+  require_command age
+  log "Encrypting database backup payloads with age"
+  for file in mysql.sql.gz mongo.archive.gz; do
+    age --recipient "$recipient" --output "$backup_dir/$file.age" "$backup_dir/$file"
+    chmod 0600 "$backup_dir/$file.age"
+    rm -f "$backup_dir/$file"
+  done
+  encrypted=true
+fi
 
 {
   printf 'BACKUP_CREATED_AT=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  printf 'BACKUP_ENCRYPTED=%s\n' "$encrypted"
   printf 'COMPOSE_PROJECT_NAME=%s\n' "$(project_name)"
   printf 'IMAGE_REVISION=%s\n' "$(image_revision)"
   printf 'STUDY_VERSION=%s\n' "$(study_hash)"
@@ -42,6 +63,11 @@ compose exec -T cbioportal-session-database mongodump \
 
 (
   cd "$backup_dir"
-  sha256_files mysql.sql.gz mongo.archive.gz manifest.env > checksums.sha256
+  if [[ "$encrypted" == true ]]; then
+    sha256_files mysql.sql.gz.age mongo.archive.gz.age manifest.env > checksums.sha256
+  else
+    sha256_files mysql.sql.gz mongo.archive.gz manifest.env > checksums.sha256
+  fi
 )
+chmod 0600 "$backup_dir"/*
 log "Backup created at $backup_dir"

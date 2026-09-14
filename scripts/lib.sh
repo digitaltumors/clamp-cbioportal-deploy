@@ -3,9 +3,10 @@
 set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENV_FILE="$ROOT_DIR/.env"
+ENV_FILE="${CLAMP_ENV_FILE:-$ROOT_DIR/.env}"
 COMPOSE_FILE="$ROOT_DIR/compose.yaml"
 AUTH_COMPOSE_FILE="$ROOT_DIR/compose.auth.yaml"
+LOCAL_KEYCLOAK_COMPOSE_FILE="$ROOT_DIR/compose.keycloak.yaml"
 
 log() {
   printf '[clamp] %s\n' "$*"
@@ -93,7 +94,10 @@ env_value() {
 compose() {
   local -a files=(--env-file "$ENV_FILE" -f "$COMPOSE_FILE")
   if [[ -f "$ENV_FILE" && "$(auth_mode)" != "false" ]]; then
-    files+=(-f "$AUTH_COMPOSE_FILE")
+    files+=(--profile session -f "$AUTH_COMPOSE_FILE")
+    if [[ "$(auth_idp_mode)" == "local" ]]; then
+      files+=(-f "$LOCAL_KEYCLOAK_COMPOSE_FILE")
+    fi
   fi
   docker compose "${files[@]}" "$@"
 }
@@ -126,6 +130,14 @@ auth_mode() {
   printf '%s\n' "${value:-false}"
 }
 
+auth_idp_mode() {
+  local value="local"
+  if [[ -f "$ENV_FILE" ]]; then
+    value="$(env_value AUTH_IDP_MODE)"
+  fi
+  printf '%s\n' "${value:-local}"
+}
+
 project_name() {
   local value
   value="$(env_value COMPOSE_PROJECT_NAME)"
@@ -139,17 +151,29 @@ web_port() {
 }
 
 base_url() {
-  printf 'http://localhost:%s\n' "$(web_port)"
+  local value
+  value="$(env_value PUBLIC_BASE_URL)"
+  printf '%s\n' "${value:-http://localhost:$(web_port)}"
+}
+
+study_data_path() {
+  local value
+  value="$(env_value STUDY_DATA_PATH)"
+  value="${value:-./studies/clamp_2026}"
+  case "$value" in
+    /*) canonical_path "$value" ;;
+    *) canonical_path "$ROOT_DIR/$value" ;;
+  esac
 }
 
 study_hash() {
-  python3 - "$ROOT_DIR" <<'PY'
+  python3 - "$ROOT_DIR" "$(study_data_path)" <<'PY'
 import hashlib
 import pathlib
 import sys
 
 root = pathlib.Path(sys.argv[1])
-study = root / "studies" / "clamp_2026"
+study = pathlib.Path(sys.argv[2])
 records = []
 for path in study.rglob("*"):
     if not path.is_file():
@@ -158,7 +182,8 @@ for path in study.rglob("*"):
     with path.open("rb") as source:
         for chunk in iter(lambda: source.read(1024 * 1024), b""):
             digest.update(chunk)
-    records.append((path.relative_to(root).as_posix(), digest.hexdigest()))
+    relative = pathlib.PurePosixPath("studies/clamp_2026") / path.relative_to(study)
+    records.append((relative.as_posix(), digest.hexdigest()))
 payload = "".join(
     f"{digest}  {relative}\n" for relative, digest in sorted(records)
 ).encode()
