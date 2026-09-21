@@ -147,7 +147,7 @@ project_name() {
 web_port() {
   local value
   value="$(env_value WEB_PORT)"
-  printf '%s\n' "${value:-8088}"
+  printf '%s\n' "${value:-45000}"
 }
 
 base_url() {

@@ -28,18 +28,26 @@ import pathlib
 import re
 import sys
 path = pathlib.Path(sys.argv[1])
+lines = path.read_text().splitlines()
+current = {}
+for raw in lines:
+    if "=" in raw and not raw.lstrip().startswith("#"):
+        key, value = raw.split("=", 1)
+        current[key] = value
 idp_mode = os.environ["CLAMP_AUTH_IDP_MODE"]
 updates = {"AUTH_MODE": "saml", "AUTH_IDP_MODE": idp_mode,
            "SAML_ALLOW_NULL_ORIGIN": "true" if idp_mode == "local" else "false",
            "SESSION_SERVICE_INSTANCE": "clamp_portal"}
 if idp_mode == "local":
-    updates.update({"KEYCLOAK_VERSION": "26.7.3@sha256:ff4257d0d64efbe99ed1ddfaf07765cc3c36dc7518bf8324d41961327f441c54", "PUBLIC_BASE_URL": "http://localhost:8088",
+    web_port = current.get("WEB_PORT") or "45000"
+    keycloak_port = current.get("KEYCLOAK_PORT") or "46000"
+    updates.update({"KEYCLOAK_VERSION": "26.7.3@sha256:ff4257d0d64efbe99ed1ddfaf07765cc3c36dc7518bf8324d41961327f441c54", "PUBLIC_BASE_URL": f"http://localhost:{web_port}",
         "SAML_REGISTRATION_ID": "cbio-saml-idp", "SAML_ENTITY_ID": "clamp-cbioportal",
-        "SAML_IDP_ORIGIN": "http://localhost:8081", "KEYCLOAK_PORT": "8081",
+        "SAML_IDP_ORIGIN": f"http://localhost:{keycloak_port}", "KEYCLOAK_PORT": keycloak_port,
         "KEYCLOAK_REALM": "clamp", "KEYCLOAK_ADMIN_USERNAME": "admin",
         "AUTH_TEST_USERNAME": "testuser", "KEYCLOAK_ADMIN_PASSWORD": os.environ["CLAMP_KEYCLOAK_ADMIN_PASSWORD"],
         "AUTH_TEST_PASSWORD": os.environ["CLAMP_AUTH_TEST_PASSWORD"]})
-lines = path.read_text().splitlines(); seen = set(); output = []
+seen = set(); output = []
 generated = {"KEYCLOAK_ADMIN_PASSWORD", "AUTH_TEST_PASSWORD"}
 for line in lines:
     if "=" in line and not line.lstrip().startswith("#"):

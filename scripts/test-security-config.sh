@@ -33,6 +33,9 @@ for name in ("web", "cbioportal", "cbioportal-session", "study-loader"):
     assert int(service["mem_limit"]) > 0
 study_mount = next(m for m in services["study-loader"]["volumes"] if m["target"] == "/study/clamp_2026")
 assert study_mount["type"] == "bind" and study_mount["read_only"] is True
+assert study_mount["bind"]["selinux"] == "z"
+portal_config = next(m for m in services["cbioportal"]["volumes"] if m["target"] == "/cbioportal-webapp/application.properties")
+assert portal_config["bind"]["selinux"] == "z"
 assert "@sha256:" in services["cbioportal-database"]["build"]["args"]["MYSQL_BASE"]
 assert "@sha256:" in services["cbioportal-database"]["build"]["args"]["GOSU_BUILDER"]
 assert "@sha256:" in services["cbioportal-session-database"]["image"]
@@ -45,6 +48,13 @@ assert "ALL" in keycloak["cap_drop"]
 assert "no-new-privileges:true" in keycloak["security_opt"]
 PY
 grep -q '^studies$' "$ROOT_DIR/.dockerignore"
+grep -q '^WEB_PORT=45000$' "$ROOT_DIR/.env.example"
+grep -q '^KEYCLOAK_PORT=46000$' "$ROOT_DIR/.env.example"
+grep -q '^DEV_MYSQL_PORT=47000$' "$ROOT_DIR/.env.example"
+grep -q '^DEV_CBIOPORTAL_PORT=48000$' "$ROOT_DIR/.env.example"
+if grep -q 'condition: service_healthy' "$ROOT_DIR"/compose*.yaml; then
+  die "Compose health-conditioned dependencies are not portable to podman-compose"
+fi
 grep -q 'github.com/tianon/gosu@v0.0.0-20250923190938-6456aaa0f3c8' "$ROOT_DIR/database/mysql/Dockerfile"
 grep -Eq "default-src 'self'.*object-src 'none'.*frame-ancestors 'self'" \
   "$ROOT_DIR/web/portal-security-headers.conf"

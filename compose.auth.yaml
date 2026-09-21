@@ -1,9 +1,9 @@
 services:
   cbioportal:
     volumes:
-      - ./secrets/saml/idp-metadata.xml:/cbioportal-webapp/idp-metadata.xml:ro
-      - ./secrets/saml/local.crt:/cbioportal-webapp/local.crt:ro
-      - ./secrets/saml/local.key:/cbioportal-webapp/local.key:ro
+      - ./secrets/saml/idp-metadata.xml:/cbioportal-webapp/idp-metadata.xml:ro,z
+      - ./secrets/saml/local.crt:/cbioportal-webapp/local.crt:ro,z
+      - ./secrets/saml/local.key:/cbioportal-webapp/local.key:ro,z
     depends_on:
       cbioportal-session:
         condition: service_started

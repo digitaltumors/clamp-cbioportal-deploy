@@ -1,10 +1,10 @@
 # CLAMP cBioPortal deployment
 
-This repository builds and operates a local cBioPortal deployment containing the `clamp_2026` hg38 study and the custom CLAMP wrapper website. nginx serves the website and cBioPortal from one origin at `http://localhost:8088` by default.
+This repository builds and operates a local cBioPortal deployment containing the `clamp_2026` hg38 study and the custom CLAMP wrapper website. nginx serves the website and cBioPortal from one origin at `http://localhost:45000` by default.
 
 ## Requirements
 
-- Docker Engine or Docker Desktop with Compose v2
+- Docker Engine or Docker Desktop with Compose v2, or Podman with the `podman-docker` compatibility package and a Compose provider
 - Bash, curl, Python 3, and either `sha256sum` (Linux) or `shasum` (macOS)
 - `age` when encrypted private-data backups are enabled
 - at least 10 GiB of free disk space
@@ -24,7 +24,7 @@ The checked-in `clamp_2026` study is a small, wholly synthetic fixture suitable 
 ./scripts/bootstrap.sh
 ```
 
-Open <http://localhost:8088/test/>. Bootstrap builds six CLAMP images, starts the databases and services, validates/imports the study exactly once, and runs smoke tests.
+Open <http://localhost:45000/test/>. Bootstrap builds six CLAMP images, starts the databases and services, validates/imports the study exactly once, and runs smoke tests.
 
 The initial deployment runs without authentication and is intended for a private local environment. Configure supported authentication before exposing it to a network.
 
@@ -40,7 +40,7 @@ After the first installation and study import, enable it with:
 ./scripts/smoke-test.sh
 ```
 
-Open <http://localhost:8088/test/> and select **Sign in** in the cBioPortal tab. Authentication opens in a separate window because the identity-provider page cannot run inside the embedded frame. Use the generated test credentials stored in the ignored, mode-0600 `.env` file; after successful login, the window closes and the portal loads in the tab. The wrapper website remains public. `make configure-auth`, `make up`, and `make test-auth` provide the equivalent workflow.
+Open <http://localhost:45000/test/> and select **Sign in** in the cBioPortal tab. Authentication opens in a separate window because the identity-provider page cannot run inside the embedded frame. Use the generated test credentials stored in the ignored, mode-0600 `.env` file; after successful login, the window closes and the portal loads in the tab. The wrapper website remains public. `make configure-auth`, `make up`, and `make test-auth` provide the equivalent workflow.
 
 The local realm grants its test user the cBioPortal `ALL` client role. cBioPortal 6.4.5 activates study-level permission checks whenever SAML is enabled, even when `authorization=false`; a SAML `Role` value must therefore match a study identifier/group or be `ALL`. Replace the broad local role with institution-approved study roles before production use.
 
@@ -54,6 +54,29 @@ If the local Keycloak data volume is deliberately recreated, its IdP signing cer
 ./scripts/fetch-idp-metadata.sh
 docker compose --env-file .env -f compose.yaml -f compose.auth.yaml restart cbioportal
 ```
+
+### Podman and remote-server operation
+
+Podman is supported through its Docker-compatible CLI. `podman compose` delegates to an external provider such as `podman-compose`, so this repository uses only portable startup dependencies and performs readiness checks in `scripts/up.sh`. Repository bind mounts include the shared `:z` SELinux label required on enforcing hosts.
+
+The default host ports are deliberately high and loopback-only:
+
+| Service | Default host port | Container port |
+| --- | ---: | ---: |
+| CLAMP/nginx | 45000 | 8080 |
+| Local Keycloak fixture | 46000 | 8080 |
+| Optional development MySQL | 47000 | 3306 |
+| Optional direct cBioPortal access | 48000 | 8080 |
+
+An entry such as `8080/tcp` in `podman ps` is an exposed container port, not a host publication, and does not conflict with another container. A published port is displayed with a host mapping such as `127.0.0.1:45000->8080/tcp`.
+
+Because host ports remain bound to loopback, access a remote server through its approved TLS ingress or an SSH tunnel. For the unauthenticated local profile:
+
+```bash
+ssh -L 45000:127.0.0.1:45000 USER@SERVER
+```
+
+For the local SAML fixture, also forward `46000`. If cBioPortal does not become healthy, `up.sh` now waits for `CBIOPORTAL_STARTUP_TIMEOUT` seconds (600 by default) and prints the cBioPortal and MySQL logs before failing.
 
 ### Docker Desktop and WSL bind-mount recovery
 

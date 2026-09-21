@@ -21,13 +21,18 @@ if [[ "$(auth_mode)" == "saml" ]]; then
 fi
 
 compose up -d "${services[@]}"
-if ! wait_for_url "$(base_url)/healthz" 420; then
+if ! wait_for_url "$(base_url)/healthz" 120; then
   compose ps
-  compose logs --tail=100 cbioportal web >&2 || true
+  compose logs --tail=200 web >&2 || true
   die "Web service did not become healthy"
 fi
-wait_for_url "$(base_url)/cbioportal/api/health" 120 \
-  || die "cBioPortal health endpoint did not become ready"
+startup_timeout="$(env_value CBIOPORTAL_STARTUP_TIMEOUT)"
+startup_timeout="${startup_timeout:-600}"
+if ! wait_for_url "$(base_url)/cbioportal/api/health" "$startup_timeout"; then
+  compose ps
+  compose logs --tail=200 cbioportal cbioportal-database >&2 || true
+  die "cBioPortal did not become healthy; inspect the logs above for database, memory, permission, or SELinux errors"
+fi
 log "CLAMP is running at $(base_url)/test/"
 if [[ "$(auth_mode)" == "saml" ]]; then
   log "SAML authentication is enabled through $(env_value SAML_IDP_ORIGIN)"

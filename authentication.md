@@ -4,7 +4,7 @@
 
 ## Objective
 
-Add supported user authentication to the pinned cBioPortal 6.4.5 deployment, reconnect the existing session service so saved/shared sessions work, and retain the current same-origin nginx wrapper at `http://localhost:8088` for local development.
+Add supported user authentication to the pinned cBioPortal 6.4.5 deployment, reconnect the existing session service so saved/shared sessions work, and retain the current same-origin nginx wrapper at `http://localhost:45000` for local development.
 
 Authentication and authorization are separate milestones:
 
@@ -32,7 +32,7 @@ OAuth2/OIDC remains a viable alternative if the institution requires it. If sele
 Browser
   |
   v
-nginx :8088
+nginx :45000
   |-- /test/* --------------------------------> custom static wrapper
   |-- /cbioportal/* --------------------------> authenticated cBioPortal
                                                      |
@@ -100,10 +100,10 @@ Add safe variable names to `.env.example`:
 
 ```dotenv
 AUTH_MODE=saml
-PUBLIC_BASE_URL=http://localhost:8088
+PUBLIC_BASE_URL=http://localhost:45000
 SAML_REGISTRATION_ID=cbio-saml-idp
 SAML_ENTITY_ID=clamp-cbioportal
-SAML_IDP_ORIGIN=http://localhost:8081
+SAML_IDP_ORIGIN=http://localhost:46000
 SAML_ALLOW_NULL_ORIGIN=true
 SAML_IDP_METADATA_PATH=./secrets/saml/idp-metadata.xml
 SAML_CERTIFICATE_PATH=./secrets/saml/local.crt
@@ -125,7 +125,7 @@ spring.security.saml2.relyingparty.registration.cbio-saml-idp.assertingparty.met
 spring.security.saml2.relyingparty.registration.cbio-saml-idp.entity-id=clamp-cbioportal
 spring.security.saml2.relyingparty.registration.cbio-saml-idp.signing.credentials[0].certificate-location=classpath:/local.crt
 spring.security.saml2.relyingparty.registration.cbio-saml-idp.signing.credentials[0].private-key-location=classpath:/local.key
-security.cors.allowed-origins=http://localhost:8081,null
+security.cors.allowed-origins=http://localhost:46000,null
 session.service.url=http://cbioportal-session:5001/api/sessions/clamp_portal/
 filter_groups_by_appname=false
 ```
@@ -181,7 +181,7 @@ Create `auth/keycloak/compose.keycloak.yaml` as a development-only overlay. It s
 
 - use a current, tested, pinned Keycloak image and digest;
 - use a dedicated persistent database or the supported Keycloak development database only for disposable local testing;
-- publish Keycloak only on a local development port such as 8081;
+- publish Keycloak only on a local development port such as 46000;
 - import a minimal realm containing one SAML client and test users;
 - avoid committing real credentials;
 - generate administrator and test-user passwords during configuration; and

@@ -9,7 +9,7 @@ require_command curl
 require_command python3
 command -v sha256sum >/dev/null 2>&1 || command -v shasum >/dev/null 2>&1 \
   || die "Either sha256sum or shasum is required"
-docker compose version >/dev/null 2>&1 || die "Docker Compose v2 is required"
+docker compose version >/dev/null 2>&1 || die "A Docker-compatible Compose provider is required"
 docker info >/dev/null 2>&1 || die "Cannot access the Docker daemon"
 
 study_dir="$(study_data_path)"

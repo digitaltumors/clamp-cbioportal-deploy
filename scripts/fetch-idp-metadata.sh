@@ -8,7 +8,7 @@ umask 077
 require_config
 realm="$(env_value KEYCLOAK_REALM)"
 port="$(env_value KEYCLOAK_PORT)"
-url="${IDP_METADATA_URL:-http://localhost:${port:-8081}/realms/${realm:-clamp}/protocol/saml/descriptor}"
+url="${IDP_METADATA_URL:-http://localhost:${port:-46000}/realms/${realm:-clamp}/protocol/saml/descriptor}"
 destination="$ROOT_DIR/secrets/saml/idp-metadata.xml"
 mkdir -p "$(dirname "$destination")"
 temporary="$(mktemp "${destination}.XXXXXX")"

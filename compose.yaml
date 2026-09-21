@@ -18,8 +18,8 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_MYSQL_ROOT_PASSWORD:?Set DB_MYSQL_ROOT_PASSWORD in .env}
     command: ["--local-infile=1"]
     volumes:
-      - ./database/init/cgds.sql:/docker-entrypoint-initdb.d/01-cgds.sql:ro
-      - ./database/init/seed.sql.gz:/docker-entrypoint-initdb.d/02-seed.sql.gz:ro
+      - ./database/init/cgds.sql:/docker-entrypoint-initdb.d/01-cgds.sql:ro,z
+      - ./database/init/seed.sql.gz:/docker-entrypoint-initdb.d/02-seed.sql.gz:ro,z
       - cbioportal_mysql_data:/var/lib/mysql
     networks: [portal-database]
     security_opt: [no-new-privileges:true]
@@ -44,7 +44,7 @@ services:
       MONGO_APP_USERNAME: ${MONGO_APP_USERNAME:?Set MONGO_APP_USERNAME in .env}
       MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?Set MONGO_APP_PASSWORD in .env}
     volumes:
-      - ./database/mongo/init-session-user.sh:/docker-entrypoint-initdb.d/10-session-user.sh:ro
+      - ./database/mongo/init-session-user.sh:/docker-entrypoint-initdb.d/10-session-user.sh:ro,z
       - cbioportal_mongo_data:/data/db
     networks: [session-database]
     security_opt: [no-new-privileges:true]
@@ -92,7 +92,7 @@ services:
         -Dspring.data.mongodb.uri=mongodb://${MONGO_APP_USERNAME}:${MONGO_APP_PASSWORD}@cbioportal-session-database:27017/session-service?authSource=session-service
     depends_on:
       cbioportal-session-database:
-        condition: service_healthy
+        condition: service_started
     networks: [session-api, session-database]
 
   cbioportal:
@@ -128,10 +128,10 @@ services:
         java $${JAVA_OPTS} -cp '/cbioportal-webapp:/cbioportal-webapp/lib/*'
         org.cbioportal.PortalApplication $${WEBAPP_OPTS}
     volumes:
-      - ./runtime/application.properties:/cbioportal-webapp/application.properties:ro
+      - ./runtime/application.properties:/cbioportal-webapp/application.properties:ro,z
     depends_on:
       cbioportal-database:
-        condition: service_healthy
+        condition: service_started
     expose: ["8080"]
     networks: [portal-web, portal-database, session-api]
     healthcheck:
@@ -161,9 +161,9 @@ services:
     cpus: ${WEB_CPU_LIMIT:-1.0}
     depends_on:
       cbioportal:
-        condition: service_healthy
+        condition: service_started
     ports:
-      - "${BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-8088}:8080"
+      - "${BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-45000}:8080"
     networks: [portal-web]
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
@@ -202,11 +202,11 @@ services:
       REPORTS_DIR: /reports
     depends_on:
       cbioportal:
-        condition: service_healthy
+        condition: service_started
     volumes:
-      - ${STUDY_DATA_PATH:-./studies/clamp_2026}:/study/clamp_2026:ro
-      - ./reports:/reports
-      - ./runtime/application.properties:/cbioportal-webapp/application.properties:ro
+      - ${STUDY_DATA_PATH:-./studies/clamp_2026}:/study/clamp_2026:ro,z
+      - ./reports:/reports:z
+      - ./runtime/application.properties:/cbioportal-webapp/application.properties:ro,z
     networks: [portal-database, session-api]
     restart: "no"
 

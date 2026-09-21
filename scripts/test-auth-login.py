@@ -106,7 +106,7 @@ def main() -> int:
     password = env.get("AUTH_TEST_PASSWORD", "")
     if not username or not password:
         raise SystemExit("Local auth test credentials are not configured")
-    base = env.get("PUBLIC_BASE_URL", "http://localhost:8088").rstrip("/")
+    base = env.get("PUBLIC_BASE_URL", "http://localhost:45000").rstrip("/")
     registration = env.get("SAML_REGISTRATION_ID", "cbio-saml-idp")
 
     # Keycloak's SAML cookies are deliberately Secure because assertions cross
@@ -152,7 +152,7 @@ def main() -> int:
             origin=(
                 "null"
                 if env.get("SAML_ALLOW_NULL_ORIGIN", "false").lower() == "true"
-                else env.get("SAML_IDP_ORIGIN", "http://localhost:8081")
+                else env.get("SAML_IDP_ORIGIN", "http://localhost:46000")
             ),
         ),
     )
