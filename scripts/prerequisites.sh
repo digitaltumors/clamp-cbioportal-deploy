@@ -16,6 +16,7 @@ study_dir="$(study_data_path)"
 for path in \
   compose.yaml \
   cbioportal/Dockerfile \
+  cbioportal/security-requirements.txt \
   study-loader/Dockerfile \
   session-service/Dockerfile \
   database/mysql/Dockerfile \

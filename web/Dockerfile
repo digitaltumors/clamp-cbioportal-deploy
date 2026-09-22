@@ -1,4 +1,4 @@
-ARG NGINX_BASE=nginx:1.31.5-alpine-slim@sha256:3b171d7224b669faa3cc2137fea0a65301791df1ec1f271ebd2a2b7461f7fade
+ARG NGINX_BASE=docker.io/nginx:1.31.5-alpine-slim@sha256:3b171d7224b669faa3cc2137fea0a65301791df1ec1f271ebd2a2b7461f7fade
 FROM ${NGINX_BASE}
 
 ARG IMAGE_REVISION=unknown

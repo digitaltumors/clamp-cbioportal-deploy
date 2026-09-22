@@ -57,7 +57,7 @@ docker compose --env-file .env -f compose.yaml -f compose.auth.yaml restart cbio
 
 ### Podman and remote-server operation
 
-Podman is supported through its Docker-compatible CLI. `podman compose` delegates to an external provider such as `podman-compose`, so this repository uses only portable startup dependencies and performs readiness checks in `scripts/up.sh`. Repository bind mounts include the shared `:z` SELinux label required on enforcing hosts.
+Podman is supported through its Docker-compatible CLI. `podman compose` delegates to an external provider such as `podman-compose`, so keep Podman and the provider on mutually supported versions. Podman 3.4 is too old for current podman-compose networking; use a current Podman release on deployment hosts. This repository uses portable startup dependencies, the Podman-compatible `no-new-privileges` security option, explicit registry-qualified base images, and readiness checks in `scripts/up.sh`. Repository bind mounts include the shared `:z` SELinux label required on enforcing hosts.
 
 The default host ports are deliberately high and loopback-only:
 
@@ -76,7 +76,9 @@ Because host ports remain bound to loopback, access a remote server through its 
 ssh -L 45000:127.0.0.1:45000 USER@SERVER
 ```
 
-For the local SAML fixture, also forward `46000`. If cBioPortal does not become healthy, `up.sh` now waits for `CBIOPORTAL_STARTUP_TIMEOUT` seconds (600 by default) and prints the cBioPortal and MySQL logs before failing.
+For the local SAML fixture, also forward `46000`. If cBioPortal does not become healthy, `up.sh` waits for `CBIOPORTAL_STARTUP_TIMEOUT` seconds (600 by default) and prints the cBioPortal and MySQL logs before failing. A fresh MySQL volume can spend several minutes loading the seed before cBioPortal starts; do not interrupt that first initialization.
+
+If cBioPortal repeatedly exits with `cryptography package is required for sha256_password or caching_sha2_password`, rebuild the cBioPortal and study-loader images from the current Dockerfiles. Their hash-pinned Python dependency set includes `cryptography`, which PyMySQL needs for MySQL 8 `caching_sha2_password` accounts. Do not work around this by downgrading the database account to legacy password authentication.
 
 ### Docker Desktop and WSL bind-mount recovery
 

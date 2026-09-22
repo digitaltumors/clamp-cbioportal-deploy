@@ -28,7 +28,7 @@ services:
       - keycloak_data:/opt/keycloak/data
     networks: [identity]
     cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
+    security_opt: [no-new-privileges]
     pids_limit: ${KEYCLOAK_PIDS_LIMIT:-512}
     mem_limit: ${KEYCLOAK_MEMORY_LIMIT:-2g}
     cpus: ${KEYCLOAK_CPU_LIMIT:-2.0}

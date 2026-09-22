@@ -15,7 +15,7 @@ images=(
   "$(env_value CLAMP_WEB_IMAGE)"
   "$(env_value CLAMP_SESSION_SERVICE_IMAGE)"
   "$(env_value CLAMP_MYSQL_IMAGE)"
-  "mongo:$(env_value MONGO_VERSION)"
+  "docker.io/mongo:$(env_value MONGO_VERSION)"
   "$(env_value CLAMP_KEYCLOAK_IMAGE)"
 )
 for image in "${images[@]}"; do
@@ -23,7 +23,7 @@ for image in "${images[@]}"; do
 done
 
 syft_image='ghcr.io/anchore/syft:v1.51.1@sha256:95fe0835e5bebc6f8b1f8acef68d47d63d594ef4c0f25c097ff853b23cbac74c'
-trivy_image='aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969'
+trivy_image='docker.io/aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969'
 : > "$report_dir/images.tsv"
 printf 'scanned_at_utc\timage\tdigest\n' >> "$report_dir/images.tsv"
 scan_failed=false

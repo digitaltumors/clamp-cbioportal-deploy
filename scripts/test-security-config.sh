@@ -28,7 +28,7 @@ for name in ("web", "cbioportal", "cbioportal-session", "study-loader"):
     service = services[name]
     assert service["read_only"] is True
     assert "ALL" in service["cap_drop"]
-    assert "no-new-privileges:true" in service["security_opt"]
+    assert "no-new-privileges" in service["security_opt"]
     assert int(service["pids_limit"]) > 0
     assert int(service["mem_limit"]) > 0
 study_mount = next(m for m in services["study-loader"]["volumes"] if m["target"] == "/study/clamp_2026")
@@ -45,7 +45,7 @@ keycloak = auth["services"]["keycloak"]
 assert keycloak["ports"][0]["host_ip"] == "127.0.0.1"
 assert "@sha256:" in keycloak["build"]["args"]["KEYCLOAK_BASE"]
 assert "ALL" in keycloak["cap_drop"]
-assert "no-new-privileges:true" in keycloak["security_opt"]
+assert "no-new-privileges" in keycloak["security_opt"]
 PY
 grep -q '^studies$' "$ROOT_DIR/.dockerignore"
 grep -q '^WEB_PORT=45000$' "$ROOT_DIR/.env.example"
@@ -61,4 +61,9 @@ grep -Eq "default-src 'self'.*object-src 'none'.*frame-ancestors 'self'" \
 if grep -Eiq '^COPY[[:space:]]+((--[^[:space:]]+)[[:space:]]+)*stud(y|ies)([/[:space:]]|$)' "$ROOT_DIR/study-loader/Dockerfile"; then
   die "Study data must not be copied into the loader image"
 fi
+grep -q '^cryptography==50\.0\.1 ' "$ROOT_DIR/cbioportal/security-requirements.txt"
+grep -q -- '--require-hashes -r /tmp/security-requirements.txt' "$ROOT_DIR/cbioportal/Dockerfile"
+grep -q -- '--require-hashes -r /tmp/security-requirements.txt' "$ROOT_DIR/study-loader/Dockerfile"
+grep -q '^ARG CBIOPORTAL_BASE=docker.io/' "$ROOT_DIR/cbioportal/Dockerfile"
+grep -q '^ARG MYSQL_BASE=docker.io/' "$ROOT_DIR/database/mysql/Dockerfile"
 log "Effective Compose and build-context security assertions passed"

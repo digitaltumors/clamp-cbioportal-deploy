@@ -7,8 +7,8 @@ services:
       context: ./database/mysql
       dockerfile: Dockerfile
       args:
-        MYSQL_BASE: mysql:${MYSQL_VERSION:-8.0.46@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b}
-        GOSU_BUILDER: golang:${GOSU_BUILDER_VERSION:-1.27.1-alpine3.24@sha256:cf6fca6641884b8433441b2b0652976f975e1d0fdd26d177eaaf8596087f3125}
+        MYSQL_BASE: docker.io/mysql:${MYSQL_VERSION:-8.0.46@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b}
+        GOSU_BUILDER: docker.io/golang:${GOSU_BUILDER_VERSION:-1.27.1-alpine3.24@sha256:cf6fca6641884b8433441b2b0652976f975e1d0fdd26d177eaaf8596087f3125}
         IMAGE_REVISION: ${IMAGE_REVISION:-local}
     restart: unless-stopped
     environment:
@@ -22,7 +22,7 @@ services:
       - ./database/init/seed.sql.gz:/docker-entrypoint-initdb.d/02-seed.sql.gz:ro,z
       - cbioportal_mysql_data:/var/lib/mysql
     networks: [portal-database]
-    security_opt: [no-new-privileges:true]
+    security_opt: [no-new-privileges]
     pids_limit: ${MYSQL_PIDS_LIMIT:-512}
     mem_limit: ${MYSQL_MEMORY_LIMIT:-4g}
     cpus: ${MYSQL_CPU_LIMIT:-2.0}
@@ -34,7 +34,7 @@ services:
       start_period: 120s
 
   cbioportal-session-database:
-    image: mongo:${MONGO_VERSION:-7.0.41@sha256:b096b4cb9269f3ebcf363be63f1c50920f786879d03a1890347a3bf33f1f0df0}
+    image: docker.io/mongo:${MONGO_VERSION:-7.0.41@sha256:b096b4cb9269f3ebcf363be63f1c50920f786879d03a1890347a3bf33f1f0df0}
     restart: unless-stopped
     profiles: [session]
     environment:
@@ -47,7 +47,7 @@ services:
       - ./database/mongo/init-session-user.sh:/docker-entrypoint-initdb.d/10-session-user.sh:ro,z
       - cbioportal_mongo_data:/data/db
     networks: [session-database]
-    security_opt: [no-new-privileges:true]
+    security_opt: [no-new-privileges]
     pids_limit: ${MONGO_PIDS_LIMIT:-512}
     mem_limit: ${MONGO_MEMORY_LIMIT:-2g}
     cpus: ${MONGO_CPU_LIMIT:-1.5}
@@ -71,8 +71,8 @@ services:
       context: ./session-service
       dockerfile: Dockerfile
       args:
-        SESSION_SERVICE_BASE: cbioportal/session-service:${SESSION_SERVICE_VERSION:-0.6.5@sha256:5be37b996297dc9ca2503988407e79377c09acec74d06c9b15a9ff5e95f966d3}
-        JAVA_RUNTIME_BASE: eclipse-temurin:${SESSION_JAVA_RUNTIME_VERSION:-21-jre-alpine@sha256:974b08960c5d96694c780e65b2d5705268ab1e1ca1a0dd0caf4ba6c3fe34d699}
+        SESSION_SERVICE_BASE: docker.io/cbioportal/session-service:${SESSION_SERVICE_VERSION:-0.6.5@sha256:5be37b996297dc9ca2503988407e79377c09acec74d06c9b15a9ff5e95f966d3}
+        JAVA_RUNTIME_BASE: docker.io/eclipse-temurin:${SESSION_JAVA_RUNTIME_VERSION:-21-jre-alpine@sha256:974b08960c5d96694c780e65b2d5705268ab1e1ca1a0dd0caf4ba6c3fe34d699}
         IMAGE_REVISION: ${IMAGE_REVISION:-local}
     restart: unless-stopped
     profiles: [session]
@@ -81,7 +81,7 @@ services:
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=128m
     cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
+    security_opt: [no-new-privileges]
     pids_limit: ${SESSION_PIDS_LIMIT:-256}
     mem_limit: ${SESSION_MEMORY_LIMIT:-1g}
     cpus: ${SESSION_CPU_LIMIT:-1.0}
@@ -101,7 +101,7 @@ services:
       context: ./cbioportal
       dockerfile: Dockerfile
       args:
-        CBIOPORTAL_BASE: cbioportal/cbioportal:${CBIOPORTAL_VERSION:-6.4.5@sha256:96809f5607be1fa02177faae2219d8cd61bb23c6ef79b8e05ba286606ae94b6c}
+        CBIOPORTAL_BASE: docker.io/cbioportal/cbioportal:${CBIOPORTAL_VERSION:-6.4.5@sha256:96809f5607be1fa02177faae2219d8cd61bb23c6ef79b8e05ba286606ae94b6c}
         IMAGE_REVISION: ${IMAGE_REVISION:-local}
     restart: unless-stopped
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
@@ -109,7 +109,7 @@ services:
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=512m
     cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
+    security_opt: [no-new-privileges]
     pids_limit: ${CBIOPORTAL_PIDS_LIMIT:-512}
     mem_limit: ${CBIOPORTAL_MEMORY_LIMIT:-6g}
     cpus: ${CBIOPORTAL_CPU_LIMIT:-3.0}
@@ -147,7 +147,7 @@ services:
       context: ./web
       dockerfile: Dockerfile
       args:
-        NGINX_BASE: nginx:${NGINX_VERSION:-1.31.5-alpine-slim@sha256:3b171d7224b669faa3cc2137fea0a65301791df1ec1f271ebd2a2b7461f7fade}
+        NGINX_BASE: docker.io/nginx:${NGINX_VERSION:-1.31.5-alpine-slim@sha256:3b171d7224b669faa3cc2137fea0a65301791df1ec1f271ebd2a2b7461f7fade}
         IMAGE_REVISION: ${IMAGE_REVISION:-local}
     restart: unless-stopped
     user: "101:101"
@@ -155,7 +155,7 @@ services:
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=128m
     cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
+    security_opt: [no-new-privileges]
     pids_limit: ${WEB_PIDS_LIMIT:-128}
     mem_limit: ${WEB_MEMORY_LIMIT:-256m}
     cpus: ${WEB_CPU_LIMIT:-1.0}
@@ -177,7 +177,7 @@ services:
       context: .
       dockerfile: study-loader/Dockerfile
       args:
-        CBIOPORTAL_BASE: cbioportal/cbioportal:${CBIOPORTAL_VERSION:-6.4.5@sha256:96809f5607be1fa02177faae2219d8cd61bb23c6ef79b8e05ba286606ae94b6c}
+        CBIOPORTAL_BASE: docker.io/cbioportal/cbioportal:${CBIOPORTAL_VERSION:-6.4.5@sha256:96809f5607be1fa02177faae2219d8cd61bb23c6ef79b8e05ba286606ae94b6c}
         IMAGE_REVISION: ${IMAGE_REVISION:-local}
     profiles: [tools]
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
@@ -185,7 +185,7 @@ services:
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=256m
     cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
+    security_opt: [no-new-privileges]
     pids_limit: ${IMPORT_PIDS_LIMIT:-512}
     mem_limit: ${IMPORT_MEMORY_LIMIT:-10g}
     cpus: ${IMPORT_CPU_LIMIT:-4.0}
