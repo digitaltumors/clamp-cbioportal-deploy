@@ -83,7 +83,8 @@ grep -q 'empty-mssql-driver.jar' "$ROOT_DIR/auth/keycloak/Dockerfile"
 grep -q '^ARG MYSQL_BASE=docker.io/' "$ROOT_DIR/database/mysql/Dockerfile"
 "$ROOT_DIR/scripts/validate-trivy-exceptions.py" --self-test
 "$ROOT_DIR/scripts/validate-trivy-exceptions.py" "$ROOT_DIR/.trivyignore.yaml"
-grep -q -- '--ignorefile "$exception_policy" --show-suppressed' "$ROOT_DIR/scripts/scan-images.sh"
+grep -q -- "--ignorefile \"\$exception_policy\" --show-suppressed" \
+  "$ROOT_DIR/scripts/scan-images.sh"
 grep -q -- '--ignorefile /policy/.trivyignore.yaml --show-suppressed' \
   "$ROOT_DIR/scripts/scan-images.sh"
 grep -q 'trivy.baseline.json' "$ROOT_DIR/scripts/scan-images.sh"
