@@ -1,6 +1,6 @@
 # Authentication plan for the CLAMP cBioPortal deployment
 
-> Implementation status: the local/test SAML path described here is implemented with Keycloak 26.7.3, authenticated cBioPortal access, and the session service. The institutional production integration remains environment-specific. Testing the pinned cBioPortal release showed that SAML mode always enables study permission evaluation; the local test user therefore receives the `ALL` client role. Production roles must be narrowed to the approved studies or groups.
+> Implementation status: the local/test SAML path described here is implemented with Keycloak 26.7.4, authenticated cBioPortal access, and the session service. The institutional production integration remains environment-specific. Testing the pinned cBioPortal release showed that SAML mode always enables study permission evaluation; the local test user therefore receives the `ALL` client role. Production roles must be narrowed to the approved studies or groups.
 
 ## Objective
 

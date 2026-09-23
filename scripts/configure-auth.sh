@@ -41,7 +41,7 @@ updates = {"AUTH_MODE": "saml", "AUTH_IDP_MODE": idp_mode,
 if idp_mode == "local":
     web_port = current.get("WEB_PORT") or "45000"
     keycloak_port = current.get("KEYCLOAK_PORT") or "46000"
-    updates.update({"KEYCLOAK_VERSION": "26.7.3@sha256:ff4257d0d64efbe99ed1ddfaf07765cc3c36dc7518bf8324d41961327f441c54", "PUBLIC_BASE_URL": f"http://localhost:{web_port}",
+    updates.update({"KEYCLOAK_VERSION": "26.7.4@sha256:82a77884f3af238beab1e7afd63b5f530e1b5c0590bd7aa60b40a40463e29b2c", "PUBLIC_BASE_URL": f"http://localhost:{web_port}",
         "SAML_REGISTRATION_ID": "cbio-saml-idp", "SAML_ENTITY_ID": "clamp-cbioportal",
         "SAML_IDP_ORIGIN": f"http://localhost:{keycloak_port}", "KEYCLOAK_PORT": keycloak_port,
         "KEYCLOAK_REALM": "clamp", "KEYCLOAK_ADMIN_USERNAME": "admin",

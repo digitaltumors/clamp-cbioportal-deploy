@@ -1,0 +1,30 @@
+{
+  "vulnerabilities": [
+    {
+      "id": "CVE-2026-86145",
+      "purls": [
+        "pkg:rpm/redhat/pcre2@10.40-6.el9?arch=x86_64&distro=redhat-9.8",
+        "pkg:rpm/redhat/pcre2-syntax@10.40-6.el9?arch=noarch&distro=redhat-9.8"
+      ],
+      "statement": "ticket=SEC-1; owner=UCSD Ideker Lab Software Team; approved_by=Daniel Halmos; justification=Keycloak remains loopback-only and Red Hat provides no fixed PCRE2 package version",
+      "expired_at": "2026-10-23T00:00:00Z"
+    },
+    {
+      "id": "CVE-2026-89161",
+      "purls": [
+        "pkg:rpm/redhat/pcre2@10.40-6.el9?arch=x86_64&distro=redhat-9.8",
+        "pkg:rpm/redhat/pcre2-syntax@10.40-6.el9?arch=noarch&distro=redhat-9.8"
+      ],
+      "statement": "ticket=SEC-1; owner=UCSD Ideker Lab Software Team; approved_by=Daniel Halmos; justification=Keycloak remains loopback-only and Red Hat provides no fixed PCRE2 package version",
+      "expired_at": "2026-10-23T00:00:00Z"
+    },
+    {
+      "id": "CVE-2025-59250",
+      "purls": [
+        "pkg:maven/com.microsoft.sqlserver/mssql-jdbc@13.2.1"
+      ],
+      "statement": "ticket=SEC-1; owner=UCSD Ideker Lab Software Team; approved_by=Daniel Halmos; justification=The local H2-only Keycloak fixture replaces the SQL Server implementation with an empty JAR",
+      "expired_at": "2026-10-23T00:00:00Z"
+    }
+  ]
+}

@@ -10,7 +10,8 @@ services:
       context: ./auth/keycloak
       dockerfile: Dockerfile
       args:
-        KEYCLOAK_BASE: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION:-26.7.3@sha256:ff4257d0d64efbe99ed1ddfaf07765cc3c36dc7518bf8324d41961327f441c54}
+        KEYCLOAK_BASE: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION:-26.7.4@sha256:82a77884f3af238beab1e7afd63b5f530e1b5c0590bd7aa60b40a40463e29b2c}
+        MAVEN_BUILDER: docker.io/library/maven:${MAVEN_BUILDER_VERSION:-3-eclipse-temurin-21@sha256:c2a2c58516d160f43b50f12baa427ca86989e0bc942609e04aff61da5d9a7d74}
         IMAGE_REVISION: ${IMAGE_REVISION:-local}
     restart: unless-stopped
     command:

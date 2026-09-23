@@ -1,0 +1,38 @@
+--- a/pom.xml
++++ b/pom.xml
+@@ -7,7 +7,7 @@
+   <parent>
+     <groupId>org.springframework.boot</groupId>
+     <artifactId>spring-boot-starter-parent</artifactId>
+-    <version>3.5.6</version>
++    <version>3.5.14</version>
+   </parent>
+ 
+   <groupId>io.github.cbioportal</groupId>
+@@ -37,7 +37,13 @@
+     <!-- The rest can be set in the dependencyManagement section -->
+     <spring.social.version>1.1.6.RELEASE</spring.social.version>
+ 
+-    <jackson.version>2.12.5</jackson.version>
++    <jackson.version>2.21.4</jackson.version>
++    <jackson-bom.version>2.21.4</jackson-bom.version>
++    <spring-framework.version>6.2.19</spring-framework.version>
++    <spring-data-bom.version>2025.0.12</spring-data-bom.version>
++    <spring-security.version>6.5.11</spring-security.version>
++    <netty.version>4.1.137.Final</netty.version>
++    <thymeleaf.version>3.1.5.RELEASE</thymeleaf.version>
+     <mysql-connector.version>8.0.28</mysql-connector.version>
+     <mysql.version>8.2.0</mysql.version>
+     <springfox.version>3.0.0</springfox.version>
+@@ -97,9 +102,9 @@
+     <selenium.version>4.31.0</selenium.version>
+     <sentry.version>7.1.0</sentry.version>
+     <clickhouse_testcontainer.version>1.19.7</clickhouse_testcontainer.version>
+-    <bouncy_castle.version>1.78</bouncy_castle.version>
++    <bouncy_castle.version>1.85</bouncy_castle.version>
+     <mapstruct.version>1.6.3</mapstruct.version>
+-    <tomcat.version>10.1.45</tomcat.version>
++    <tomcat.version>10.1.60</tomcat.version>
+     <velocity.version>2.4</velocity.version>
+ 
+     <!-- No sure what these are for -->

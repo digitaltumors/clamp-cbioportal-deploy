@@ -12,7 +12,7 @@ This repository builds and operates a local cBioPortal deployment containing the
 
 This initial deployment intentionally pins cBioPortal 6.4.5 and uses its compatible MySQL schema. Do not replace it with a locally built v7 image; v7 requires a planned ClickHouse migration and fresh data import.
 
-The local image layer updates supported operating-system packages before release, uses session-service 0.6.5 on a current Java runtime, uses the slim nginx runtime, rebuilds `gosu` with a patched Go toolchain, and removes the unused MySQL Shell payload. These measures substantially reduce scanner findings without changing cBioPortal's database architecture. Application-library findings that require upstream cBioPortal, session-service, MongoDB, or Keycloak releases remain release-blocking; see [SECURITY.md](SECURITY.md).
+The build compiles cBioPortal's maintained v6 source and session-service 0.6.5 from immutable commits, applies reviewable dependency-only security patches, and copies the resulting artifacts into pinned runtime images. It also uses the slim nginx runtime, rebuilds `gosu` with a patched Go toolchain for MySQL and MongoDB, updates MongoDB Database Tools, and removes unused archive and ClickHouse-driver payloads from the cBioPortal runtime. The mandatory scanner still blocks release when a HIGH or CRITICAL finding remains; see [SECURITY.md](SECURITY.md).
 
 The checked-in `clamp_2026` study is a small, wholly synthetic fixture suitable for publishing with the deployment code. It preserves the same cBioPortal study layout and data types without distributing the private CLAMP dataset. Replace it with reviewed private data only in a deployment-specific working copy.
 
@@ -24,13 +24,13 @@ The checked-in `clamp_2026` study is a small, wholly synthetic fixture suitable 
 ./scripts/bootstrap.sh
 ```
 
-Open <http://localhost:45000/test/>. Bootstrap builds six CLAMP images, starts the databases and services, validates/imports the study exactly once, and runs smoke tests.
+Open <http://localhost:45000/test/>. Bootstrap builds seven CLAMP images, starts the databases and services, validates/imports the study exactly once, and runs smoke tests.
 
 The initial deployment runs without authentication and is intended for a private local environment. Configure supported authentication before exposing it to a network.
 
 ## Local authentication
 
-The repository includes a tested local SAML fixture using Keycloak 26.7.3. It protects cBioPortal, gives the generated test user access to all local studies, and enables user-associated sessions through the existing session-service and MongoDB containers.
+The repository includes a tested local SAML fixture using Keycloak 26.7.4. It protects cBioPortal, gives the generated test user access to all local studies, and enables user-associated sessions through the existing session-service and MongoDB containers.
 
 After the first installation and study import, enable it with:
 
@@ -165,6 +165,36 @@ Back up first. In CI, pass `--yes`; interactive confirmation is disabled when `C
 ```
 
 This validates Compose, requires ShellCheck, builds images, generates SPDX SBOMs, and runs mandatory HIGH/CRITICAL Trivy gates for all seven deployable images. If local Syft or Trivy binaries are absent, immutable scanner containers are used; scanning never silently skips. Reports and deployed image digests are retained under `reports/security`. Add `--integration` for a full bootstrap test on an empty project and `--push` only after setting `IMAGE_REGISTRY`. A push cannot occur unless every scan passes.
+
+### Controlled vulnerability exemptions
+
+Fix or upgrade vulnerable dependencies whenever a compatible patched version exists. A temporary exemption is permitted only after the finding has been reviewed and compensating controls have been documented.
+
+The current rebuilt images leave only Keycloak base-image PCRE findings with no vendor fix and a serialized SQL Server driver coordinate whose implementation is disabled in the local H2-only fixture. See `SECURITY.md` for the exact disposition and approved temporary exceptions.
+
+Exemptions live in `.trivyignore.yaml`, which intentionally uses JSON-compatible YAML so the repository can validate every field without installing a YAML parser. Each exemption must contain:
+
+- one vulnerability ID;
+- one or more exact, versioned package URLs copied from the Trivy JSON report;
+- a ticket, owner, approver, and justification in the statement; and
+- an expiry date no more than 30 days in the future.
+
+Example:
+
+```json
+{
+  "vulnerabilities": [
+    {
+      "id": "CVE-YYYY-NNNNN",
+      "purls": ["pkg:maven/example/component@1.2.3"],
+      "statement": "ticket=SEC-123; owner=platform; approved_by=security; justification=Vulnerable feature is unreachable and the service is isolated",
+      "expired_at": "YYYY-MM-DDT00:00:00Z"
+    }
+  ]
+}
+```
+
+Run `./scripts/validate-trivy-exceptions.py .trivyignore.yaml` before committing a proposed policy. When exemptions exist, CI retains unfiltered `*.trivy.baseline.json` evidence alongside the gated reports and verifies that every exemption matches a detected ID/PURL pair. CI fails when an exemption is malformed, expired, longer than 30 days, insufficiently scoped, or no longer matches a finding. Removing an expired exemption does not make its finding pass: the underlying HIGH/CRITICAL result must be fixed or reviewed again in a new pull request.
 
 ## Generated and ignored files
 

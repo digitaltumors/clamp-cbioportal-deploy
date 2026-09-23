@@ -34,7 +34,13 @@ services:
       start_period: 120s
 
   cbioportal-session-database:
-    image: docker.io/mongo:${MONGO_VERSION:-7.0.41@sha256:b096b4cb9269f3ebcf363be63f1c50920f786879d03a1890347a3bf33f1f0df0}
+    image: ${CLAMP_MONGO_IMAGE:-clamp-mongo:local}
+    build:
+      context: ./database/mongo
+      args:
+        MONGO_BASE: docker.io/mongo:${MONGO_VERSION:-7.0.41@sha256:b096b4cb9269f3ebcf363be63f1c50920f786879d03a1890347a3bf33f1f0df0}
+        GOSU_BUILDER: docker.io/golang:${GOSU_BUILDER_VERSION:-1.27.1-alpine3.24@sha256:cf6fca6641884b8433441b2b0652976f975e1d0fdd26d177eaaf8596087f3125}
+        NODE_BUILDER: docker.io/library/node:${NODE_BUILDER_VERSION:-24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1}
     restart: unless-stopped
     profiles: [session]
     environment:
@@ -71,7 +77,8 @@ services:
       context: ./session-service
       dockerfile: Dockerfile
       args:
-        SESSION_SERVICE_BASE: docker.io/cbioportal/session-service:${SESSION_SERVICE_VERSION:-0.6.5@sha256:5be37b996297dc9ca2503988407e79377c09acec74d06c9b15a9ff5e95f966d3}
+        MAVEN_BUILDER: docker.io/library/maven:${MAVEN_BUILDER_VERSION:-3-eclipse-temurin-21@sha256:c2a2c58516d160f43b50f12baa427ca86989e0bc942609e04aff61da5d9a7d74}
+        SESSION_SERVICE_SOURCE_COMMIT: ${SESSION_SERVICE_SOURCE_COMMIT:-2edf9dc3b98a821cc7f0202d15095eebfefe6874}
         JAVA_RUNTIME_BASE: docker.io/eclipse-temurin:${SESSION_JAVA_RUNTIME_VERSION:-21-jre-alpine@sha256:974b08960c5d96694c780e65b2d5705268ab1e1ca1a0dd0caf4ba6c3fe34d699}
         IMAGE_REVISION: ${IMAGE_REVISION:-local}
     restart: unless-stopped
@@ -102,6 +109,8 @@ services:
       dockerfile: Dockerfile
       args:
         CBIOPORTAL_BASE: docker.io/cbioportal/cbioportal:${CBIOPORTAL_VERSION:-6.4.5@sha256:96809f5607be1fa02177faae2219d8cd61bb23c6ef79b8e05ba286606ae94b6c}
+        CBIOPORTAL_SOURCE_COMMIT: ${CBIOPORTAL_SOURCE_COMMIT:-d9b76e4f5b981b686895517d1574f714180bfef0}
+        MAVEN_BUILDER: docker.io/library/maven:${MAVEN_BUILDER_VERSION:-3-eclipse-temurin-21@sha256:c2a2c58516d160f43b50f12baa427ca86989e0bc942609e04aff61da5d9a7d74}
         IMAGE_REVISION: ${IMAGE_REVISION:-local}
     restart: unless-stopped
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
@@ -177,7 +186,7 @@ services:
       context: .
       dockerfile: study-loader/Dockerfile
       args:
-        CBIOPORTAL_BASE: docker.io/cbioportal/cbioportal:${CBIOPORTAL_VERSION:-6.4.5@sha256:96809f5607be1fa02177faae2219d8cd61bb23c6ef79b8e05ba286606ae94b6c}
+        CBIOPORTAL_BASE: ${CLAMP_CBIOPORTAL_IMAGE:-clamp-cbioportal:local}
         IMAGE_REVISION: ${IMAGE_REVISION:-local}
     profiles: [tools]
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"

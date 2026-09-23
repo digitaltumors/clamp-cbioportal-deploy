@@ -23,7 +23,7 @@ if [[ "$integration" == true ]]; then "$ROOT_DIR/scripts/bootstrap.sh"; fi
 if [[ "$push" == true ]]; then
   registry="$(env_value IMAGE_REGISTRY)"
   [[ -n "$registry" ]] || die "IMAGE_REGISTRY must be set for --push"
-  for key in CLAMP_CBIOPORTAL_IMAGE CLAMP_STUDY_LOADER_IMAGE CLAMP_WEB_IMAGE CLAMP_SESSION_SERVICE_IMAGE CLAMP_MYSQL_IMAGE CLAMP_KEYCLOAK_IMAGE; do
+  for key in CLAMP_CBIOPORTAL_IMAGE CLAMP_STUDY_LOADER_IMAGE CLAMP_WEB_IMAGE CLAMP_SESSION_SERVICE_IMAGE CLAMP_MYSQL_IMAGE CLAMP_MONGO_IMAGE CLAMP_KEYCLOAK_IMAGE; do
     image="$(env_value "$key")"; remote="${registry%/}/${image}"
     docker tag "$image" "$remote"; docker push "$remote"
   done

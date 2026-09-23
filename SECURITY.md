@@ -6,7 +6,7 @@ The default deployment is a loopback-only development environment. It is safe fo
 
 - nginx and development ports bind to loopback by default. nginx remains loopback-only; production traffic must enter through a trusted local TLS ingress. An HTTPS public URL requires SAML, an external HTTPS IdP, trusted-proxy mode, and encrypted-backup configuration.
 - MongoDB 7 authorization uses separate root and least-privilege application credentials. The browser-facing web container has no database network route; MySQL and MongoDB use separate internal networks. Session containers are not started in no-auth mode.
-- MySQL, MongoDB, nginx, session-service, Keycloak, cBioPortal, Java-runtime, and Go-builder bases are version-and-manifest-digest pinned. Custom runtime layers install available OS security updates. The cBioPortal 6.4.5 pin is retained because upgrading to v7 also requires the planned ClickHouse/schema migration.
+- MySQL, MongoDB, nginx, Keycloak, cBioPortal, Java-runtime, Maven-builder, Go-builder, and Node-builder bases are version-and-manifest-digest pinned. cBioPortal maintenance-v6 and session-service source revisions are full Git commit pins. Reviewable POM patches upgrade vulnerable libraries without changing the cBioPortal 6/MySQL architecture; custom runtime layers also install available OS security updates.
 - The bundled Keycloak fixture is a loopback-only local test profile. External SAML uses `configure-auth.sh --external HTTPS_METADATA_URL`, does not start Keycloak, rejects `null` origins, and requires an HTTPS IdP origin.
 - Containers have explicit users where compatible, capability drops, `no-new-privileges`, read-only filesystems for stateless services, private tmpfs mounts, PID limits, and CPU/memory limits.
 - Study content is mounted read-only at import time and excluded from the loader build context and image layers. Keep private studies outside this Git repository and point `STUDY_DATA_PATH` to them.
@@ -15,9 +15,9 @@ The default deployment is a loopback-only development environment. It is safe fo
 - Backups are mode 0600 under mode-0700 directories. Set `BACKUP_AGE_RECIPIENT`; private externally published deployments require it. Restore requires `BACKUP_AGE_IDENTITY`.
 - `release.sh` and CI generate SPDX SBOMs and fail on HIGH or CRITICAL findings for all seven deployable images. Scanner images and GitHub Actions are immutable-reference pinned; evidence is retained under `reports/security`.
 
-## Current vulnerability gate status
+## Vulnerability remediation and gate status
 
-The 2026-09-11 Trivy 0.74.0 rescan completed against the exact rebuilt images and still **blocked release**. Remediation reduced HIGH/CRITICAL occurrences from 930 to 273 (about 71%) while preserving the tested cBioPortal 6/MySQL architecture.
+The 2026-09-11 Trivy 0.74.0 scan below is the pre-source-rebuild baseline. It reduced HIGH/CRITICAL occurrences from 930 to 273 (about 71%) but still blocked release.
 
 | Deployable image | Before | After | Remaining source |
 | --- | ---: | ---: | --- |
@@ -29,7 +29,21 @@ The 2026-09-11 Trivy 0.74.0 rescan completed against the exact rebuilt images an
 | MongoDB | 97 | 97 | Bundled MongoDB database tools, `gosu`, and `js-yaml` |
 | Local Keycloak fixture | 3 | 3 | Required Java/runtime dependencies; one has no vendor fix |
 
-The cBioPortal and session-service dependencies cannot be safely replaced as loose JARs in prebuilt applications; they require tested upstream application rebuilds. MongoDB's affected database tools are required by backup, restore, and migration scripts. Keycloak's JDBC driver is referenced by its generated classpath even when the local fixture uses H2, so deleting it prevents startup. Exact findings and SPDX SBOMs are retained in ignored, mode-0600 files under `reports/security`. CI and `release.sh` intentionally remain red until compatible upstream releases eliminate the findings or narrowly reviewed, expiring CVE exceptions are approved. Do not bypass the gate or publish these images as an approved production release based only on this reduction.
+The 2026-09-23 remediation rebuild produced this current result:
+
+| Deployable image | HIGH/CRITICAL rows | Result |
+| --- | ---: | --- |
+| cBioPortal | 0 | Pass |
+| Study loader | 0 | Pass |
+| Web/nginx | 0 | Pass |
+| Session service | 0 | Pass |
+| MySQL | 0 | Pass |
+| MongoDB | 0 | Pass |
+| Local Keycloak fixture | 5 exempted | Pass until the approved exceptions expire |
+
+The current implementation rebuilds cBioPortal and session-service from pinned source with patched dependency versions instead of swapping loose JARs. The study loader inherits that exact cBioPortal image. MongoDB is a derived image with a rebuilt `gosu`, updated Database Tools and mongosh, and patched `js-yaml` 3.15.2. The redundant cBioPortal core archive and unused ClickHouse driver are removed. Keycloak is upgraded to 26.7.4 and overlays Netty Handler 4.1.137 and Bouncy Castle 1.85; its local H2-only fixture replaces the unused SQL Server driver implementation with an empty JAR at the Quarkus-required path.
+
+The remaining Keycloak rows are CVE-2026-86145 and CVE-2026-89161 against both `pcre2` and `pcre2-syntax` in the Red Hat 9.8 base. Trivy reports no fixed version. The fifth row, CVE-2025-59250, is retained in Quarkus' serialized application model even though the SQL Server implementation is absent. Ticket SEC-1 temporarily exempts these exact package URLs through 2026-10-23, owned by the UCSD Ideker Lab Software Team and approved by Daniel Halmos. Exact unfiltered findings and SPDX SBOMs are retained in ignored, mode-0600 files under `reports/security`; the gate will fail automatically when the exceptions expire, stop matching, or are removed before a fixed Keycloak base is adopted.
 
 ## Existing MongoDB 4.2 installations
 

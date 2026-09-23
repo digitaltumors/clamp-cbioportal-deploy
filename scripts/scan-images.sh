@@ -5,9 +5,14 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
 require_config
 require_command docker
+require_command python3
 report_dir="$ROOT_DIR/reports/security"
+exception_policy="$ROOT_DIR/.trivyignore.yaml"
+exception_validator="$ROOT_DIR/scripts/validate-trivy-exceptions.py"
 mkdir -p "$report_dir/sbom" "$report_dir/trivy-cache"
 chmod 0700 "$report_dir" "$report_dir/sbom" "$report_dir/trivy-cache"
+exception_count="$("$exception_validator" --count "$exception_policy")"
+rm -f "$report_dir"/*.trivy.baseline.json
 
 images=(
   "$(env_value CLAMP_CBIOPORTAL_IMAGE)"
@@ -15,7 +20,7 @@ images=(
   "$(env_value CLAMP_WEB_IMAGE)"
   "$(env_value CLAMP_SESSION_SERVICE_IMAGE)"
   "$(env_value CLAMP_MYSQL_IMAGE)"
-  "docker.io/mongo:$(env_value MONGO_VERSION)"
+  "$(env_value CLAMP_MONGO_IMAGE)"
   "$(env_value CLAMP_KEYCLOAK_IMAGE)"
 )
 for image in "${images[@]}"; do
@@ -27,6 +32,7 @@ trivy_image='docker.io/aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b215
 : > "$report_dir/images.tsv"
 printf 'scanned_at_utc\timage\tdigest\n' >> "$report_dir/images.tsv"
 scan_failed=false
+evidence_reports=()
 for image in "${images[@]}"; do
   key="$(printf '%s' "$image" | tr '/:@' '____')"
   digest="$(docker image inspect --format '{{index .RepoDigests 0}}' "$image" 2>/dev/null || true)"
@@ -38,18 +44,41 @@ for image in "${images[@]}"; do
     docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
       "$syft_image" "$image" -o spdx-json > "$report_dir/sbom/$key.spdx.json"
   fi
+  if (( exception_count > 0 )); then
+    baseline_report="$report_dir/$key.trivy.baseline.json"
+    evidence_reports+=("$baseline_report")
+    log "Recording unfiltered exemption evidence for $image"
+    if command -v trivy >/dev/null 2>&1; then
+      trivy image --exit-code 0 --scanners vuln --severity HIGH,CRITICAL --format json \
+        --output "$baseline_report" "$image"
+    else
+      docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+        -v "$report_dir/trivy-cache:/root/.cache/trivy" \
+        "$trivy_image" image --exit-code 0 --scanners vuln --severity HIGH,CRITICAL \
+        --format json "$image" > "$baseline_report"
+    fi
+  fi
+  trivy_report="$report_dir/$key.trivy.json"
   log "Scanning $image (HIGH and CRITICAL fail the release)"
   if command -v trivy >/dev/null 2>&1; then
     trivy image --exit-code 1 --scanners vuln --severity HIGH,CRITICAL --format json \
-      --output "$report_dir/$key.trivy.json" "$image" || scan_failed=true
+      --ignorefile "$exception_policy" --show-suppressed \
+      --output "$trivy_report" "$image" || scan_failed=true
   else
     docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
       -v "$report_dir/trivy-cache:/root/.cache/trivy" \
+      -v "$exception_policy:/policy/.trivyignore.yaml:ro,z" \
       "$trivy_image" image --exit-code 1 --scanners vuln --severity HIGH,CRITICAL \
-      --format json "$image" > "$report_dir/$key.trivy.json" || scan_failed=true
+      --format json --ignorefile /policy/.trivyignore.yaml --show-suppressed \
+      "$image" > "$trivy_report" || scan_failed=true
   fi
 done
 chmod 0600 "$report_dir/images.tsv" "$report_dir"/*.json "$report_dir/sbom"/*.json
+evidence_args=("$exception_policy")
+for report in "${evidence_reports[@]}"; do
+  evidence_args+=(--report "$report")
+done
+"$exception_validator" "${evidence_args[@]}"
 [[ "$scan_failed" == false ]] \
   || die "One or more images contain HIGH/CRITICAL findings; review reports/security before release"
 log "All seven deployable images passed mandatory HIGH/CRITICAL scanning"

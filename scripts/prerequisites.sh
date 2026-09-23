@@ -20,6 +20,7 @@ for path in \
   study-loader/Dockerfile \
   session-service/Dockerfile \
   database/mysql/Dockerfile \
+  database/mongo/Dockerfile \
   auth/keycloak/Dockerfile \
   web/Dockerfile \
   database/init/cgds.sql \
@@ -34,9 +35,13 @@ done
 for key in MONGO_ROOT_USERNAME MONGO_ROOT_PASSWORD MONGO_APP_USERNAME MONGO_APP_PASSWORD; do
   [[ -n "$(env_value "$key")" ]] || die "Missing $key; regenerate or update .env"
 done
-for key in CBIOPORTAL_VERSION SESSION_SERVICE_VERSION SESSION_JAVA_RUNTIME_VERSION MYSQL_VERSION GOSU_BUILDER_VERSION MONGO_VERSION NGINX_VERSION KEYCLOAK_VERSION; do
+for key in CBIOPORTAL_VERSION MAVEN_BUILDER_VERSION SESSION_JAVA_RUNTIME_VERSION MYSQL_VERSION GOSU_BUILDER_VERSION NODE_BUILDER_VERSION MONGO_VERSION NGINX_VERSION KEYCLOAK_VERSION; do
   [[ "$(env_value "$key")" == *@sha256:* ]] \
     || die "$key must include a reviewed immutable sha256 manifest digest"
+done
+for key in CBIOPORTAL_SOURCE_COMMIT SESSION_SERVICE_SOURCE_COMMIT; do
+  [[ "$(env_value "$key")" =~ ^[0-9a-f]{40}$ ]] \
+    || die "$key must be an immutable 40-character Git commit"
 done
 
 mode="$(auth_mode)"
