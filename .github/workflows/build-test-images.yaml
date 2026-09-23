@@ -39,8 +39,8 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: image-security-reports
-          path: |
-            reports/security/*.json
-            reports/security/*.tsv
-            reports/security/sbom/*.json
-          if-no-files-found: error
+          path: reports/security/
+          # This step runs even when checkout, configuration, or image building
+          # fails before the scanner can create its output. Do not replace the
+          # original failure with a secondary missing-artifact error.
+          if-no-files-found: warn
