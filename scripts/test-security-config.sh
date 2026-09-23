@@ -88,4 +88,8 @@ grep -q -- "--ignorefile \"\$exception_policy\" --show-suppressed" \
 grep -q -- '--ignorefile /policy/.trivyignore.yaml --show-suppressed' \
   "$ROOT_DIR/scripts/scan-images.sh"
 grep -q 'trivy.baseline.json' "$ROOT_DIR/scripts/scan-images.sh"
+grep -q 'RUNNER_TEMP.*clamp-trivy-cache' "$ROOT_DIR/scripts/scan-images.sh"
+if grep -q 'report_dir/trivy-cache' "$ROOT_DIR/scripts/scan-images.sh"; then
+  die "Trivy cache must remain outside the uploaded security-report directory"
+fi
 log "Effective Compose and build-context security assertions passed"

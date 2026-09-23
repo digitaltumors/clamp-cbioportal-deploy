@@ -7,10 +7,11 @@ require_config
 require_command docker
 require_command python3
 report_dir="$ROOT_DIR/reports/security"
+trivy_cache_dir="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/clamp-trivy-cache-${UID:-$(id -u)}"
 exception_policy="$ROOT_DIR/.trivyignore.yaml"
 exception_validator="$ROOT_DIR/scripts/validate-trivy-exceptions.py"
-mkdir -p "$report_dir/sbom" "$report_dir/trivy-cache"
-chmod 0700 "$report_dir" "$report_dir/sbom" "$report_dir/trivy-cache"
+mkdir -p "$report_dir/sbom" "$trivy_cache_dir"
+chmod 0700 "$report_dir" "$report_dir/sbom" "$trivy_cache_dir"
 exception_count="$("$exception_validator" --count "$exception_policy")"
 rm -f "$report_dir"/*.trivy.baseline.json
 
@@ -53,7 +54,7 @@ for image in "${images[@]}"; do
         --output "$baseline_report" "$image"
     else
       docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-        -v "$report_dir/trivy-cache:/root/.cache/trivy" \
+        -v "$trivy_cache_dir:/root/.cache/trivy" \
         "$trivy_image" image --exit-code 0 --scanners vuln --severity HIGH,CRITICAL \
         --format json "$image" > "$baseline_report"
     fi
@@ -66,7 +67,7 @@ for image in "${images[@]}"; do
       --output "$trivy_report" "$image" || scan_failed=true
   else
     docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-      -v "$report_dir/trivy-cache:/root/.cache/trivy" \
+      -v "$trivy_cache_dir:/root/.cache/trivy" \
       -v "$exception_policy:/policy/.trivyignore.yaml:ro,z" \
       "$trivy_image" image --exit-code 1 --scanners vuln --severity HIGH,CRITICAL \
       --format json --ignorefile /policy/.trivyignore.yaml --show-suppressed \
