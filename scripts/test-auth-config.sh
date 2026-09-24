@@ -25,7 +25,7 @@ if grep -Eq '^HTTP/[^ ]+ 30[23]' "$tmp_headers"; then
   grep -qi "^location: $(env_value SAML_IDP_ORIGIN)/" "$tmp_headers" \
     || die "SAML redirect did not target the configured IdP"
 else
-  grep -qi "<form action=\"$(env_value SAML_IDP_ORIGIN)/" "$tmp_body" \
+  grep -Fqi "action=\"$(env_value SAML_IDP_ORIGIN)/" "$tmp_body" \
     || die "SAML POST binding did not target the configured IdP"
   grep -q 'name="SAMLRequest"' "$tmp_body" || die "SAML POST form contains no request"
 fi
